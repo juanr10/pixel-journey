@@ -31,9 +31,31 @@
 
     canvas { background:#4caf50; margin-top:16px; border-radius:8px; cursor:pointer; }
 
-    /* ==== Modales ==== */
-    .modal { position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.5); padding:20px; }
-    .modalInner { width:min(92vw,480px); background:#fff; color:#111; border-radius:12px; padding:20px; box-shadow:0 10px 40px rgba(0,0,0,.4); }
+    /* No scroll cuando un modal está abierto */
+    body.no-scroll { overflow: hidden; }
+
+    /* ==== Modales con transiciones ==== */
+    .modal {
+      position:fixed; inset:0;
+      display:flex; align-items:center; justify-content:center;
+      background:rgba(0,0,0,.5);
+      padding:20px;
+      opacity:0; visibility:hidden; pointer-events:none;
+      transition: opacity .18s ease, visibility .18s ease;
+      z-index: 15;
+    }
+    .modal.show { opacity:1; visibility:visible; pointer-events:auto; }
+    .modalInner {
+      width:min(92vw,480px);
+      background:#fff; color:#111;
+      border-radius:12px; padding:20px;
+      box-shadow:0 10px 40px rgba(0,0,0,.4);
+      transform: scale(.98);
+      opacity:.95;
+      transition: transform .18s ease, opacity .18s ease;
+    }
+    .modal.show .modalInner { transform: scale(1); opacity:1; }
+
     .modal h2 { margin:0 0 16px; font-family: 'Press Start 2P', cursive; font-size:14px; color:#333; }
     .formRow { display:flex; flex-direction:column; margin-bottom:14px; }
     .formRow label { font-size:.85rem; margin-bottom:4px; color:#444; }
@@ -48,7 +70,7 @@
 <body>
   <h1>Pixel Life</h1>
 
-  <!-- Botón para abrir modal de alta -->
+  <!-- Botón superior para abrir modal de alta -->
   <button id="openAddModal" class="primary">+ Añadir recuerdo</button>
 
   <canvas id="map" width="500" height="600" aria-label="Mapa de recuerdos"></canvas>
@@ -58,7 +80,7 @@
     <div class="modalInner">
       <h2>Nuevo recuerdo</h2>
 
-      <!-- Mantener addMeta ANTES de categoría (tal y como pediste) -->
+      <!-- Mantener addMeta ANTES de la categoría (checkpoint) -->
       <div id="addMeta" class="muted"></div>
 
       <div class="formRow">
@@ -137,7 +159,7 @@
     const CONFIG = {
       SHOW_GRID: false,
       SHOW_GRID_DURING_ANIM: false,
-      SHOW_POIS: true,            // <- activa POIs de camino + rombitos junto a iconos
+      SHOW_POIS: true,            // POIs del camino + rombitos junto a iconos
       CRISP_ALIGN: true,
       ANIM_DURATION_MS: 900
     };
@@ -218,8 +240,13 @@
       }
     }
 
-    // Helper
+    // Helpers
     function cellCenter(x, y) { return { x: x*tileSize + tileSize/2, y: y*tileSize + tileSize/2 }; }
+    function drawSprite(img, x, y, w, h) {
+      const dx = CONFIG.CRISP_ALIGN ? Math.round(x) : x;
+      const dy = CONFIG.CRISP_ALIGN ? Math.round(y) : y;
+      ctx.drawImage(img, dx, dy, w, h);
+    }
 
     // Camino determinista
     function computeWaypointsAndPolyline() {
@@ -256,13 +283,7 @@
       setupCrispCanvas();
     }
 
-    // Dibujo
-    function drawSprite(img, x, y, w, h) {
-      const dx = CONFIG.CRISP_ALIGN ? Math.round(x) : x;
-      const dy = CONFIG.CRISP_ALIGN ? Math.round(y) : y;
-      ctx.drawImage(img, dx, dy, w, h);
-    }
-
+    // POIs
     function drawPOIAtCell(cellX, cellY, type) {
       if (!CONFIG.SHOW_POIS) return;
       ctx.save();
@@ -390,7 +411,7 @@
         const uptoWp = countWaypointsVisible(polyline, progressIdx);
         drawIcons(waypoints, uptoWp);
 
-        // Personajito suave (no redondeamos para suavidad)
+        // Personajito suave
         const a = polyline[progressIdx];
         const b = polyline[Math.min(progressIdx+1, totalEnd)];
         const px = a.x, py = a.y;
@@ -414,7 +435,17 @@
       requestAnimationFrame(step);
     }
 
-    // ===== Alta =====
+    // ========= Helpers de modal (UI) =========
+    function showModal(el){
+      el.classList.add('show');
+      document.body.classList.add('no-scroll');
+    }
+    function hideModal(el){
+      el.classList.remove('show');
+      document.body.classList.remove('no-scroll');
+    }
+
+    // ===== Alta (modal Añadir) =====
     const openAddModalBtn=document.getElementById("openAddModal");
     const addModal=document.getElementById("addModal");
     const cancelAdd=document.getElementById("cancelAdd");
@@ -423,13 +454,17 @@
     const addText=document.getElementById("addText");
     const addType=document.getElementById("addType");
     const addMeta=document.getElementById("addMeta");
-    openAddModalBtn.addEventListener("click",()=>{
-      addTitle.value="";addText.value="";
+
+    function openAddModal(){
+      addTitle.value=""; addText.value="";
       addType.value="camera";
       addMeta.textContent=`Índice: ${memories.length} · Fecha: ${new Date().toLocaleString()}`;
-      addModal.style.display="flex";setTimeout(()=>addTitle.focus(),0);
-    });
-    cancelAdd.addEventListener("click",()=>addModal.style.display="none");
+      showModal(addModal);
+      setTimeout(()=>addTitle.focus(),0);
+    }
+
+    openAddModalBtn.addEventListener("click", openAddModal);
+    cancelAdd.addEventListener("click",()=> hideModal(addModal));
     saveAdd.addEventListener("click",()=>{
       const title=addTitle.value.trim(), text=addText.value.trim(), type=addType.value;
       if(!title||!text) return alert("Completa todos los campos.");
@@ -437,7 +472,7 @@
       localStorage.setItem("memories",JSON.stringify(memories));
       ensureCapacity();
       animateLastSegment();
-      addModal.style.display="none";
+      hideModal(addModal);
     });
 
     // ===== Edición =====
@@ -463,10 +498,10 @@
       titleEl.textContent=m.title||fallback;
       idRow.textContent=`Índice: ${currentIdx} · Fecha: ${new Date(m.createdAt).toLocaleString()}`;
       editTitle.value=m.title||"";editText.value=m.text||"";editType.value=m.type;
-      modal.style.display="flex";
+      showModal(modal);
     });
 
-    function closeModal(){modal.style.display="none";}
+    function closeModal(){ hideModal(modal); }
 
     saveBtn.addEventListener("click",()=>{
       if(currentIdx==null)return;
@@ -483,6 +518,17 @@
       memories.splice(currentIdx,1);
       localStorage.setItem("memories",JSON.stringify(memories));
       currentIdx=null;closeModal();ensureCapacity();drawMap();
+    });
+
+    // Cerrar al hacer click en el fondo (backdrop) y con ESC
+    ;[addModal, modal].forEach(m => {
+      m.addEventListener('click', (e) => { if (e.target === m) hideModal(m); });
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        if (addModal.classList.contains('show')) hideModal(addModal);
+        if (modal.classList.contains('show')) hideModal(modal);
+      }
     });
   </script>
 </body>
