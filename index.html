@@ -73,14 +73,14 @@
   <!-- Botón superior para abrir modal de alta -->
   <button id="openAddModal" class="primary">+ Añadir recuerdo</button>
 
-  <canvas id="map" width="500" height="600" aria-label="Mapa de recuerdos"></canvas>
+  <canvas id="map" width="480" height="576" aria-label="Mapa de recuerdos"></canvas>
 
   <!-- Modal Añadir -->
   <div id="addModal" class="modal" role="dialog" aria-modal="true">
     <div class="modalInner">
       <h2>Nuevo recuerdo</h2>
 
-      <!-- Mantener addMeta ANTES de la categoría (checkpoint) -->
+      <!-- addMeta ANTES de la categoría (checkpoint) -->
       <div id="addMeta" class="muted"></div>
 
       <div class="formRow">
@@ -164,6 +164,11 @@
       ANIM_DURATION_MS: 900
     };
 
+    // ========= Pixel-art / Tiles =========
+    const TILE_SRC_PX = 16;   // tamaño real del tile en el PNG
+    const TILE_SCALE  = 3;    // escala entera para mantener nitidez (3 -> 48px)
+    const tileSize    = TILE_SRC_PX * TILE_SCALE; // 48
+
     // ========= Utils =========
     const clamp = (v,min,max)=>Math.max(min,Math.min(max,v));
     const lerp = (a,b,t)=>a+(b-a)*t;
@@ -176,7 +181,6 @@
     function randSignSeeded(seed, salt){ return seeded(seed, salt)<0.5 ? -1 : 1; }
 
     // ========= Mapa / Estado =========
-    const tileSize = 50;
     let gridW = 10;
     let gridH = 12;
     const houseCol = 0, houseRow = 0;
@@ -193,7 +197,7 @@
     const ctx = canvas.getContext("2d");
     function setupCrispCanvas() {
       const dpr = window.devicePixelRatio || 1;
-      const logicalW = gridW * tileSize;
+      const logicalW = gridW * tileSize;  // ajusta al tileSize nuevo
       const logicalH = gridH * tileSize;
       canvas.style.width = logicalW + "px";
       canvas.style.height = logicalH + "px";
@@ -203,7 +207,7 @@
       ctx.imageSmoothingEnabled = false;
     }
 
-    // Sprites
+    // ========= Sprites (iconos y casa) =========
     const spriteUrls = {
       house: "./assets/sprites/memories/house.png",
       juan: "./assets/sprites/memories/juan.png",
@@ -216,26 +220,51 @@
     };
     const sprites = {};
     let loaded = 0, needed = Object.keys(spriteUrls).length;
+
     function loadImage(target, key, url){
       const img = new Image();
-      img.onload = () => { loaded++; if (loaded === needed) { ensureCapacity(); drawMap(); } };
-      img.onerror = () => { loaded++; if (loaded === needed) { ensureCapacity(); drawMap(); } };
+      img.onload = () => { loaded++; if (loaded === needed && tilesetReady()) { ensureCapacity(); drawMap(); } };
+      img.onerror = () => { loaded++; if (loaded === needed && tilesetReady()) { ensureCapacity(); drawMap(); } };
       img.src = url; target[key] = img;
     }
     for (const [k,u] of Object.entries(spriteUrls)) loadImage(sprites, k, u);
 
-    // Mundo (colores por ahora)
+    // ========= Tileset =========
+    const tilesetUrl = "./assets/tiles/tileset_pixel_life.png"; // coloca aquí el PNG
+    let tilesetImg = new Image();
+    let tilesetLoaded = false;
+    tilesetImg.onload = () => { tilesetLoaded = true; if (loaded === needed) { ensureCapacity(); drawMap(); } };
+    tilesetImg.onerror = () => { console.warn("No se cargó tileset:", tilesetUrl); tilesetLoaded = false; if (loaded === needed) { ensureCapacity(); drawMap(); } };
+    tilesetImg.src = tilesetUrl;
+
+    function tilesetReady(){ return tilesetLoaded; }
+
+    function blitTile(tileIndex, dx, dy) {
+      if (!tilesetReady()) return; // si no cargó, no dibuja (fallback es el bg del canvas)
+      const sx = tileIndex * TILE_SRC_PX;
+      const sy = 0;
+      const sw = TILE_SRC_PX, sh = TILE_SRC_PX;
+      const dw = tileSize, dh = tileSize;
+      const px = CONFIG.CRISP_ALIGN ? Math.round(dx) : dx;
+      const py = CONFIG.CRISP_ALIGN ? Math.round(dy) : dy;
+      ctx.drawImage(tilesetImg, sx, sy, sw, sh, px, py, dw, dh);
+    }
+
+    // Mundo → tipo de tile por celda
     function tileType(x, y) {
       const r = seeded(seed, (x+1)*73856093 ^ (y+1)*19349663);
-      if (r < 0.08) return 2; if (r < 0.28) return 1; if (r < 0.40) return 3;
-      return 0;
+      if (r < 0.08) return 2; // agua
+      if (r < 0.28) return 1; // bosque
+      if (r < 0.40) return 3; // colina
+      return 0;               // llanura
     }
+
     function drawTiles() {
       for (let x=0; x<gridW; x++){
         for (let y=0; y<gridH; y++){
-          const t = tileType(x,y);
-          ctx.fillStyle = t===2?"#87c7e6":t===1?"#3a7a39":t===3?"#6b8e23":"#4caf50";
-          ctx.fillRect(x*tileSize, y*tileSize, tileSize, tileSize);
+          const t = tileType(x,y); // 0=llanura,1=bosque,2=agua,3=colina
+          const index = (t===0)?0 : (t===1)?1 : (t===2)?2 : (t===3)?3 : 0;
+          blitTile(index, x*tileSize, y*tileSize);
         }
       }
     }
@@ -340,7 +369,7 @@
     function drawHouseAndAvatars(){
       drawSprite(sprites.house,0,0,tileSize,tileSize);
       if(gridW>=3){
-        drawSprite(sprites.juan,  tileSize,0,tileSize,tileSize);
+        drawSprite(sprites.juan,  1*tileSize,0,tileSize,tileSize);
         drawSprite(sprites.paula, 2*tileSize,0,tileSize,tileSize);
       }
     }
@@ -351,7 +380,7 @@
         const m = memories[w.idx];
         const icon = sprites[m.type] ?? sprites.camera;
         // Icono del recuerdo
-        drawSprite(icon, w.x*tileSize + 8, w.y*tileSize + 8, 35, 35);
+        drawSprite(icon, w.x*tileSize + 8, w.y*tileSize + 8, Math.round(tileSize*0.73), Math.round(tileSize*0.73));
         // POI pequeño junto al icono
         drawPOIAtCell(w.x, w.y, m.type);
       }
@@ -360,7 +389,7 @@
     function drawMap(){
       const {waypoints,polyline}=computeWaypointsAndPolyline();
       ctx.clearRect(0,0,canvas.width,canvas.height);
-      drawTiles();
+      drawTiles();                 // ahora pinta tiles del PNG
       drawPath(polyline);
       drawHouseAndAvatars();
       drawIcons(waypoints);
@@ -403,7 +432,6 @@
       function render(progressIdx) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         drawTiles();
-        // Camino parcial
         drawPath(polyline, progressIdx);
         drawHouseAndAvatars();
 
@@ -413,7 +441,6 @@
 
         // Personajito suave
         const a = polyline[progressIdx];
-        const b = polyline[Math.min(progressIdx+1, totalEnd)];
         const px = a.x, py = a.y;
         if (sprites.juan && sprites.juan.width) {
           ctx.drawImage(sprites.juan, px-16, py-16, 32, 32);
