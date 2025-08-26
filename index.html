@@ -3,59 +3,104 @@
 <head>
   <meta charset="UTF-8" />
   <title>Pixel Life</title>
+  <!-- Fuente retro estilo Mario -->
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
   <style>
     :root { color-scheme: light dark; }
     body {
       background:#222; color:#fff; font-family: system-ui, sans-serif;
       display:flex; flex-direction:column; align-items:center; margin:0; padding:20px;
     }
-    h1 { margin:0 0 10px; }
-    form {
-      margin-top:10px; display:flex; flex-wrap:wrap; gap:8px; justify-content:center;
-      background:#2a2a2a; padding:10px; border-radius:10px;
+
+    h1 {
+      font-family: 'Press Start 2P', cursive;
+      font-size: 28px;
+      margin:0 0 20px;
+      color: #ffcc00;
+      text-shadow: 3px 3px 0 #000, 6px 6px 0 #d62828;
+      letter-spacing: 1px;
     }
-    input, select, button, textarea { padding:8px; border-radius:8px; border:none; }
-    button { background:#00c775; color:#111; font-weight:700; cursor:pointer; }
+
+    button {
+      padding:10px 16px; border-radius:8px; border:none; font-weight:700; cursor:pointer;
+    }
+    button.primary { background:#00c775; color:#111; }
     button.secondary { background:#e9e9e9; color:#222; }
     button.danger { background:#ff5c5c; color:#111; }
     button:hover { filter:brightness(1.05); }
+
     canvas { background:#4caf50; margin-top:16px; border-radius:8px; cursor:pointer; }
-    #modal { position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.5); padding:20px; }
-    #modalInner { width:min(92vw,460px); background:#fff; color:#111; border-radius:12px; padding:16px; box-shadow:0 10px 40px rgba(0,0,0,.4); }
-    #modal h2 { margin:0 0 6px; }
-    #modal p { margin:6px 0 10px; }
-    #modalActions { display:flex; justify-content:space-between; gap:8px; margin-top:10px; }
-    #editRow { display:grid; grid-template-columns: 1fr 160px; gap:8px; margin-top:8px; }
-    #idRow { font-size:.85rem; color:#666; margin-top:4px; }
-    .muted { opacity:.8; }
+
+    /* ==== Modales ==== */
+    .modal { position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.5); padding:20px; }
+    .modalInner { width:min(92vw,480px); background:#fff; color:#111; border-radius:12px; padding:20px; box-shadow:0 10px 40px rgba(0,0,0,.4); }
+    .modal h2 { margin:0 0 16px; font-family: 'Press Start 2P', cursive; font-size:14px; color:#333; }
+    .formRow { display:flex; flex-direction:column; margin-bottom:14px; }
+    .formRow label { font-size:.85rem; margin-bottom:4px; color:#444; }
+    .formRow input, .formRow textarea, .formRow select {
+      padding:8px; border-radius:6px; border:1px solid #ccc; font-family:inherit;
+    }
+    .modalActions { display:flex; justify-content:space-between; gap:8px; margin-top:16px; }
+    .muted { opacity:.8; font-size:.85rem; color:#666; margin-bottom:14px; }
   </style>
 </head>
+
 <body>
   <h1>Pixel Life</h1>
 
-  <!-- Alta de recuerdos -->
-  <form id="memoryForm">
-    <input type="text" id="memoryText" placeholder="Texto del recuerdo" required />
-    <select id="memoryType">
-      <option value="travel">Viaje ✈️</option>
-      <option value="mountain">Senderismo 🏔️</option>
-      <option value="game">Videojuego 🎮</option>
-      <option value="love">Romántico ❤️</option>
-      <option value="camera">Genérico 📸</option>
-    </select>
-    <button type="submit">Añadir recuerdo</button>
-  </form>
+  <!-- Botón para abrir modal de alta -->
+  <button id="openAddModal" class="primary">+ Añadir recuerdo</button>
 
   <canvas id="map" width="500" height="600" aria-label="Mapa de recuerdos"></canvas>
 
+  <!-- Modal Añadir -->
+  <div id="addModal" class="modal" role="dialog" aria-modal="true">
+    <div class="modalInner">
+      <h2>Nuevo recuerdo</h2>
+
+      <!-- Mantener addMeta ANTES de categoría (tal y como pediste) -->
+      <div id="addMeta" class="muted"></div>
+
+      <div class="formRow">
+        <label for="addType">Categoría</label>
+        <select id="addType">
+          <option value="travel">Viaje ✈️</option>
+          <option value="mountain">Senderismo 🏔️</option>
+          <option value="game">Videojuego 🎮</option>
+          <option value="love">Romántico ❤️</option>
+          <option value="camera">Genérico 📸</option>
+        </select>
+      </div>
+
+      <div class="formRow">
+        <label for="addTitle">Título</label>
+        <input type="text" id="addTitle" placeholder="Ej. Viaje a París" required>
+      </div>
+
+      <div class="formRow">
+        <label for="addText">Descripción</label>
+        <textarea id="addText" rows="3" placeholder="Escribe un detalle bonito..." required></textarea>
+      </div>
+
+      <div class="modalActions">
+        <div></div>
+        <div>
+          <button class="secondary" id="cancelAdd">Cancelar</button>
+          <button class="primary" id="saveAdd">Guardar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal detalle/edición -->
-  <div id="modal" role="dialog" aria-modal="true">
-    <div id="modalInner">
+  <div id="modal" class="modal" role="dialog" aria-modal="true">
+    <div class="modalInner">
       <h2 id="memoryTitle"></h2>
+
       <div id="idRow" class="muted"></div>
 
-      <div id="editRow">
-        <textarea id="editText" rows="3" placeholder="Editar texto..."></textarea>
+      <div class="formRow">
+        <label for="editType">Categoría</label>
         <select id="editType">
           <option value="travel">Viaje ✈️</option>
           <option value="mountain">Senderismo 🏔️</option>
@@ -65,13 +110,23 @@
         </select>
       </div>
 
-      <div id="modalActions">
+      <div class="formRow">
+        <label for="editTitle">Título</label>
+        <input type="text" id="editTitle" />
+      </div>
+
+      <div class="formRow">
+        <label for="editText">Descripción</label>
+        <textarea id="editText" rows="3"></textarea>
+      </div>
+
+      <div class="modalActions">
         <div>
           <button class="danger" id="deleteBtn">Eliminar</button>
         </div>
         <div>
           <button class="secondary" onclick="closeModal()">Cerrar</button>
-          <button id="saveBtn">Guardar</button>
+          <button class="primary" id="saveBtn">Guardar</button>
         </div>
       </div>
     </div>
@@ -80,10 +135,10 @@
   <script>
     // ========= Config =========
     const CONFIG = {
-      SHOW_GRID: false,             // líneas del grid visibles siempre
-      SHOW_GRID_DURING_ANIM: false, // grid durante la animación
-      SHOW_POIS: true,              // mostrar POIs (marcadores pequeños)
-      CRISP_ALIGN: true,            // alinear sprites a píxel
+      SHOW_GRID: false,
+      SHOW_GRID_DURING_ANIM: false,
+      SHOW_POIS: true,            // <- activa POIs de camino + rombitos junto a iconos
+      CRISP_ALIGN: true,
       ANIM_DURATION_MS: 900
     };
 
@@ -100,24 +155,20 @@
 
     // ========= Mapa / Estado =========
     const tileSize = 50;
-    let gridW = 10;                 // columnas
-    let gridH = 12;                 // filas (crece hacia abajo)
-    const houseCol = 0;             // casa izq
-    const houseRow = 0;             // arriba
-    const minX = 1, maxX = gridW - 2; // margen lateral camino
+    let gridW = 10;
+    let gridH = 12;
+    const houseCol = 0, houseRow = 0;
+    const minX = 1, maxX = gridW - 2;
 
-    // Semilla persistente
+    // Semilla y datos
     let seed = Number(localStorage.getItem("pixelLifeSeed"));
     if (!seed) { seed = (Date.now() ^ Math.floor(Math.random() * 1e9)) >>> 0; localStorage.setItem("pixelLifeSeed", String(seed)); }
-
-    // Datos
+    // Recuerdos: { title, text, type, createdAt }
     let memories = JSON.parse(localStorage.getItem("memories") || "[]");
-    // Cada item: { type, text, createdAt }
 
     // ========= Canvas =========
     const canvas = document.getElementById("map");
     const ctx = canvas.getContext("2d");
-
     function setupCrispCanvas() {
       const dpr = window.devicePixelRatio || 1;
       const logicalW = gridW * tileSize;
@@ -130,7 +181,7 @@
       ctx.imageSmoothingEnabled = false;
     }
 
-    // ========= Sprites =========
+    // Sprites
     const spriteUrls = {
       house: "./assets/sprites/memories/house.png",
       juan: "./assets/sprites/memories/juan.png",
@@ -143,100 +194,90 @@
     };
     const sprites = {};
     let loaded = 0, needed = Object.keys(spriteUrls).length;
-
     function loadImage(target, key, url){
       const img = new Image();
       img.onload = () => { loaded++; if (loaded === needed) { ensureCapacity(); drawMap(); } };
-      img.onerror = () => { console.warn("No se cargó:", url); loaded++; if (loaded === needed) { ensureCapacity(); drawMap(); } };
+      img.onerror = () => { loaded++; if (loaded === needed) { ensureCapacity(); drawMap(); } };
       img.src = url; target[key] = img;
     }
     for (const [k,u] of Object.entries(spriteUrls)) loadImage(sprites, k, u);
 
-    // ========= Mundo simple (colores) =========
+    // Mundo (colores por ahora)
     function tileType(x, y) {
       const r = seeded(seed, (x+1)*73856093 ^ (y+1)*19349663);
-      if (r < 0.08) return 2;      // agua
-      if (r < 0.28) return 1;      // bosque
-      if (r < 0.40) return 3;      // colina
-      return 0;                    // llanura
+      if (r < 0.08) return 2; if (r < 0.28) return 1; if (r < 0.40) return 3;
+      return 0;
     }
     function drawTiles() {
       for (let x=0; x<gridW; x++){
         for (let y=0; y<gridH; y++){
           const t = tileType(x,y);
-          if (t === 2) ctx.fillStyle = "#87c7e6";
-          else if (t === 1) ctx.fillStyle = "#3a7a39";
-          else if (t === 3) ctx.fillStyle = "#6b8e23";
-          else ctx.fillStyle = "#4caf50";
+          ctx.fillStyle = t===2?"#87c7e6":t===1?"#3a7a39":t===3?"#6b8e23":"#4caf50";
           ctx.fillRect(x*tileSize, y*tileSize, tileSize, tileSize);
         }
       }
     }
 
-    // ========= Camino (determinista) =========
+    // Helper
+    function cellCenter(x, y) { return { x: x*tileSize + tileSize/2, y: y*tileSize + tileSize/2 }; }
+
+    // Camino determinista
     function computeWaypointsAndPolyline() {
-      const waypoints = [];   // {x,y,idx}
-      const polyline = [];    // puntos (px) del sendero
-
-      let curX = houseCol;
-      let curY = houseRow;
-      if (gridW > 1) curX = 1; // primer paso a la derecha
-
+      const waypoints=[], polyline=[];
+      let curX=houseCol, curY=houseRow;
+      if (gridW>1) curX=1; // primer paso a la derecha
       polyline.push(cellCenter(houseCol, houseRow));
       polyline.push(cellCenter(curX, curY));
 
-      for (let i = 0; i < memories.length; i++) {
-        const rows = randIntSeeded(2, 3, seed, 1000 + i);
-        const lateral = randIntSeeded(1, 8, seed, 2000 + i) * randSignSeeded(seed, 3000 + i);
-        let targetX = clamp(curX + lateral, minX, maxX);
+      for (let i=0;i<memories.length;i++){
+        const rows=randIntSeeded(2,3,seed,1000+i);
+        const lateral=randIntSeeded(1,8,seed,2000+i)*randSignSeeded(seed,3000+i);
+        let targetX=clamp(curX+lateral,minX,maxX);
 
-        const wiggles = Array.from({length: rows}, (_, step) => {
-          const r = seeded(seed, (i+1) * 4000 + step);
-          return r < 0.18 ? -1 : (r > 0.82 ? 1 : 0);
-        });
-
-        let nextX = curX;
-        for (let step = 1; step <= rows; step++) {
-          const y = curY + step;
-          const toward = Math.sign(targetX - nextX);
-          if (toward !== 0) nextX = clamp(nextX + toward, minX, maxX);
-          nextX = clamp(nextX + wiggles[step-1], minX, maxX);
-          polyline.push(cellCenter(nextX, y));
+        const wiggles=Array.from({length:rows},(_,s)=>{const r=seeded(seed,(i+1)*4000+s);return r<.18?-1:(r>.82?1:0);});
+        let nextX=curX;
+        for(let step=1;step<=rows;step++){
+          const y=curY+step;
+          const toward=Math.sign(targetX-nextX);
+          if(toward!==0) nextX=clamp(nextX+toward,minX,maxX);
+          nextX=clamp(nextX+wiggles[step-1],minX,maxX);
+          polyline.push(cellCenter(nextX,y));
         }
-        curX = nextX;
-        curY += rows;
-        waypoints.push({ x: curX, y: curY, idx: i });
+        curX=nextX;curY+=rows;
+        waypoints.push({x:curX,y:curY,idx:i});
       }
-
-      return { waypoints, polyline };
+      return {waypoints,polyline};
     }
 
-    function ensureCapacity() {
-      const { waypoints } = computeWaypointsAndPolyline();
-      const lastY = waypoints.length ? waypoints[waypoints.length-1].y : 0;
-      gridH = Math.max(12, lastY + 4); // margen bajo
-      setupCrispCanvas();               // DPR + smoothing off
+    function ensureCapacity(){
+      const {waypoints}=computeWaypointsAndPolyline();
+      const lastY=waypoints.length?waypoints[waypoints.length-1].y:0;
+      gridH=Math.max(12,lastY+4);
+      setupCrispCanvas();
     }
 
-    // ========= Dibujo =========
-    function drawGridLines(show = true) {
-      if (!show) return;
-      ctx.strokeStyle = "rgba(0,0,0,.18)";
-      for (let i = 0; i < gridW; i++) {
-        const x = i*tileSize + 0.5;
-        ctx.beginPath(); ctx.moveTo(x, 0.5); ctx.lineTo(x, gridH*tileSize + 0.5); ctx.stroke();
-      }
-      for (let j = 0; j < gridH; j++) {
-        const y = j*tileSize + 0.5;
-        ctx.beginPath(); ctx.moveTo(0.5, y); ctx.lineTo(gridW*tileSize + 0.5, y); ctx.stroke();
-      }
-    }
-    function cellCenter(x, y) { return { x: x*tileSize + tileSize/2, y: y*tileSize + tileSize/2 }; }
-
+    // Dibujo
     function drawSprite(img, x, y, w, h) {
       const dx = CONFIG.CRISP_ALIGN ? Math.round(x) : x;
       const dy = CONFIG.CRISP_ALIGN ? Math.round(y) : y;
       ctx.drawImage(img, dx, dy, w, h);
+    }
+
+    function drawPOIAtCell(cellX, cellY, type) {
+      if (!CONFIG.SHOW_POIS) return;
+      ctx.save();
+      ctx.translate(cellX*tileSize + tileSize*0.78, cellY*tileSize + tileSize*0.22);
+      ctx.rotate(Math.PI/4);
+      const c = ({
+        travel:  "#ffd27a",
+        mountain:"#d2ff7a",
+        game:    "#7ad2ff",
+        love:    "#ff99c8",
+        camera:  "#f0e3b5"
+      })[type] || "#f0e3b5";
+      ctx.fillStyle = c;
+      ctx.fillRect(-4,-4,8,8);
+      ctx.restore();
     }
 
     function drawPath(polyline, uptoIndex = polyline.length - 1) {
@@ -262,7 +303,7 @@
       ctx.lineWidth = 10;
       ctx.stroke();
 
-      // Puntos intermedios
+      // POIs del camino (cada 3 puntos de la polilínea)
       if (CONFIG.SHOW_POIS) {
         ctx.fillStyle = "#f0e3b5";
         for (let i = 1; i <= uptoIndex; i++) {
@@ -275,58 +316,56 @@
       }
     }
 
-    function drawHouseAndAvatars() {
-      drawSprite(sprites.house, houseCol*tileSize, houseRow*tileSize, tileSize, tileSize);
-      if (gridW >= 3) {
-        drawSprite(sprites.juan,  1*tileSize, 0*tileSize, tileSize, tileSize);
-        drawSprite(sprites.paula, 2*tileSize, 0*tileSize, tileSize, tileSize);
+    function drawHouseAndAvatars(){
+      drawSprite(sprites.house,0,0,tileSize,tileSize);
+      if(gridW>=3){
+        drawSprite(sprites.juan,  tileSize,0,tileSize,tileSize);
+        drawSprite(sprites.paula, 2*tileSize,0,tileSize,tileSize);
       }
     }
 
-    function drawPOIAt(x, y, type) {
-      if (!CONFIG.SHOW_POIS) return;
-      // Pequeño rombo tipo marcador; posición relativa a la celda del icono
-      ctx.save();
-      ctx.translate(x*tileSize + tileSize*0.78, y*tileSize + tileSize*0.22);
-      ctx.rotate(Math.PI/4);
-      // tono según tipo para distinguir
-      const c = ({
-        travel:  "#ffd27a",
-        mountain:"#d2ff7a",
-        game:    "#7ad2ff",
-        love:    "#ff99c8",
-        camera:  "#f0e3b5"
-      })[type] || "#f0e3b5";
-      ctx.fillStyle = c;
-      ctx.fillRect(-4,-4,8,8);
-      ctx.restore();
-    }
-
-    function drawIcons(waypoints, uptoIdx = waypoints.length - 1) {
+    function drawIcons(waypoints, uptoIdx = waypoints.length - 1){
       for (let k = 0; k <= uptoIdx && k < waypoints.length; k++) {
         const w = waypoints[k];
         const m = memories[w.idx];
         const icon = sprites[m.type] ?? sprites.camera;
+        // Icono del recuerdo
         drawSprite(icon, w.x*tileSize + 8, w.y*tileSize + 8, 35, 35);
-        drawPOIAt(w.x, w.y, m.type); // POI pequeño cerca del icono
+        // POI pequeño junto al icono
+        drawPOIAtCell(w.x, w.y, m.type);
       }
     }
 
-    function drawMap() {
-      const { waypoints, polyline } = computeWaypointsAndPolyline();
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    function drawMap(){
+      const {waypoints,polyline}=computeWaypointsAndPolyline();
+      ctx.clearRect(0,0,canvas.width,canvas.height);
       drawTiles();
-      drawGridLines(CONFIG.SHOW_GRID);
       drawPath(polyline);
       drawHouseAndAvatars();
       drawIcons(waypoints);
     }
 
-    // ========= Animación del último tramo =========
+    // Contar waypoints alcanzados hasta un índice de polilínea
+    function countWaypointsVisible(polyline, uptoIdx) {
+      const { waypoints } = computeWaypointsAndPolyline();
+      let visible = -1;
+      for (let k = 0; k < waypoints.length; k++) {
+        const w = waypoints[k];
+        const c = cellCenter(w.x, w.y);
+        for (let i = 0; i <= uptoIdx; i++) {
+          const p = polyline[i];
+          if (Math.hypot(p.x - c.x, p.y - c.y) < 1e-3) { visible = k; break; }
+        }
+      }
+      return visible;
+    }
+
+    // ========= Animación al añadir =========
     function animateLastSegment() {
       const { waypoints, polyline } = computeWaypointsAndPolyline();
       if (waypoints.length === 0) { drawMap(); return; }
 
+      // Índice donde acababa antes
       let prevEnd = 1;
       if (memories.length > 1) {
         const prevMems = memories.slice(0, memories.length - 1);
@@ -343,14 +382,15 @@
       function render(progressIdx) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         drawTiles();
-        drawGridLines(CONFIG.SHOW_GRID_DURING_ANIM);
+        // Camino parcial
         drawPath(polyline, progressIdx);
         drawHouseAndAvatars();
 
+        // Iconos ya “alcanzados”
         const uptoWp = countWaypointsVisible(polyline, progressIdx);
         drawIcons(waypoints, uptoWp);
 
-        // Personajito (suave)
+        // Personajito suave (no redondeamos para suavidad)
         const a = polyline[progressIdx];
         const b = polyline[Math.min(progressIdx+1, totalEnd)];
         const px = a.x, py = a.y;
@@ -366,9 +406,7 @@
         if (!start) start = ts;
         const t = Math.min(1, (ts - start) / DURATION);
         const eased = easeInOut(t);
-        const idxFloat = prevEnd + eased * (totalEnd - prevEnd);
-        const idx = Math.max(prevEnd, Math.min(totalEnd, Math.floor(idxFloat)));
-
+        const idx = Math.max(prevEnd, Math.min(totalEnd, Math.floor(prevEnd + eased * (totalEnd - prevEnd))));
         render(idx);
         if (t < 1) requestAnimationFrame(step);
         else drawMap();
@@ -376,100 +414,76 @@
       requestAnimationFrame(step);
     }
 
-    function countWaypointsVisible(polyline, uptoIdx) {
-      const { waypoints } = computeWaypointsAndPolyline();
-      let visible = -1;
-      for (let k = 0; k < waypoints.length; k++) {
-        const w = waypoints[k];
-        const c = cellCenter(w.x, w.y);
-        for (let i = 0; i <= uptoIdx; i++) {
-          const p = polyline[i];
-          if (Math.hypot(p.x - c.x, p.y - c.y) < 1e-3) { visible = k; break; }
-        }
-      }
-      return visible;
-    }
-
-    // ========= Formulario (alta) =========
-    document.getElementById("memoryForm").addEventListener("submit", (e) => {
-      e.preventDefault();
-      const text = document.getElementById("memoryText").value.trim();
-      const type = document.getElementById("memoryType").value;
-      if (!text) return;
-
-      memories.push({ type, text, createdAt: new Date().toISOString() });
-      localStorage.setItem("memories", JSON.stringify(memories));
-
+    // ===== Alta =====
+    const openAddModalBtn=document.getElementById("openAddModal");
+    const addModal=document.getElementById("addModal");
+    const cancelAdd=document.getElementById("cancelAdd");
+    const saveAdd=document.getElementById("saveAdd");
+    const addTitle=document.getElementById("addTitle");
+    const addText=document.getElementById("addText");
+    const addType=document.getElementById("addType");
+    const addMeta=document.getElementById("addMeta");
+    openAddModalBtn.addEventListener("click",()=>{
+      addTitle.value="";addText.value="";
+      addType.value="camera";
+      addMeta.textContent=`Índice: ${memories.length} · Fecha: ${new Date().toLocaleString()}`;
+      addModal.style.display="flex";setTimeout(()=>addTitle.focus(),0);
+    });
+    cancelAdd.addEventListener("click",()=>addModal.style.display="none");
+    saveAdd.addEventListener("click",()=>{
+      const title=addTitle.value.trim(), text=addText.value.trim(), type=addType.value;
+      if(!title||!text) return alert("Completa todos los campos.");
+      memories.push({title,text,type,createdAt:new Date().toISOString()});
+      localStorage.setItem("memories",JSON.stringify(memories));
       ensureCapacity();
       animateLastSegment();
-      e.target.reset();
+      addModal.style.display="none";
     });
 
-    // ========= Modal edición/borrado =========
-    const modal = document.getElementById("modal");
-    const titleEl = document.getElementById("memoryTitle");
-    const idRow = document.getElementById("idRow");
-    const editText = document.getElementById("editText");
-    const editType = document.getElementById("editType");
-    const saveBtn = document.getElementById("saveBtn");
-    const deleteBtn = document.getElementById("deleteBtn");
-    let currentIdx = null;
+    // ===== Edición =====
+    const modal=document.getElementById("modal");
+    const titleEl=document.getElementById("memoryTitle");
+    const idRow=document.getElementById("idRow");
+    const editTitle=document.getElementById("editTitle");
+    const editText=document.getElementById("editText");
+    const editType=document.getElementById("editType");
+    const saveBtn=document.getElementById("saveBtn");
+    const deleteBtn=document.getElementById("deleteBtn");
+    let currentIdx=null;
 
-    canvas.addEventListener("click", (e) => {
-      const rect = canvas.getBoundingClientRect();
-      const gx = Math.floor((e.clientX - rect.left) / tileSize);
-      const gy = Math.floor((e.clientY - rect.top) / tileSize);
-
-      const { waypoints } = computeWaypointsAndPolyline();
-      const hit = waypoints.find(w => w.x === gx && w.y === gy);
-      if (!hit) return;
-
-      currentIdx = hit.idx;
-      const m = memories[currentIdx];
-      const title = ({
-        mountain: "Senderismo 🏔️",
-        travel: "Viaje ✈️",
-        game: "Videojuego 🎮",
-        love: "Romántico ❤️",
-        camera: "Recuerdo 📸"
-      })[m.type] ?? "Recuerdo";
-
-      titleEl.textContent = title;
-      idRow.textContent = `Índice: ${currentIdx} · Fecha: ${new Date(m.createdAt).toLocaleString()}`;
-      editText.value = m.text || "";
-      editType.value = m.type;
-
-      modal.style.display = "flex";
-      setTimeout(()=>editText.focus(), 0);
+    canvas.addEventListener("click",e=>{
+      const rect=canvas.getBoundingClientRect();
+      const gx=Math.floor((e.clientX-rect.left)/tileSize);
+      const gy=Math.floor((e.clientY-rect.top)/tileSize);
+      const {waypoints}=computeWaypointsAndPolyline();
+      const hit=waypoints.find(w=>w.x===gx&&w.y===gy);
+      if(!hit) return;
+      currentIdx=hit.idx;const m=memories[currentIdx];
+      const fallback=({mountain:"Senderismo 🏔️",travel:"Viaje ✈️",game:"Videojuego 🎮",love:"Romántico ❤️",camera:"Recuerdo 📸"})[m.type]??"Recuerdo";
+      titleEl.textContent=m.title||fallback;
+      idRow.textContent=`Índice: ${currentIdx} · Fecha: ${new Date(m.createdAt).toLocaleString()}`;
+      editTitle.value=m.title||"";editText.value=m.text||"";editType.value=m.type;
+      modal.style.display="flex";
     });
 
-    saveBtn.addEventListener("click", () => {
-      if (currentIdx == null) return;
-      const newText = editText.value.trim();
-      const newType = editType.value;
-      memories[currentIdx].text = newText;
-      memories[currentIdx].type = newType;
-      localStorage.setItem("memories", JSON.stringify(memories));
-      closeModal();
-      drawMap(); // redibuja (el icono puede cambiar)
+    function closeModal(){modal.style.display="none";}
+
+    saveBtn.addEventListener("click",()=>{
+      if(currentIdx==null)return;
+      memories[currentIdx].title=editTitle.value.trim()||"Recuerdo";
+      memories[currentIdx].text=editText.value.trim();
+      memories[currentIdx].type=editType.value;
+      localStorage.setItem("memories",JSON.stringify(memories));
+      closeModal();drawMap();
     });
 
-    deleteBtn.addEventListener("click", () => {
-      if (currentIdx == null) return;
-      const ok = confirm("¿Seguro que quieres eliminar este recuerdo? Esta acción no se puede deshacer.");
-      if (!ok) return;
-      memories.splice(currentIdx, 1);
-      localStorage.setItem("memories", JSON.stringify(memories));
-      currentIdx = null;
-      closeModal();
-      ensureCapacity();
-      drawMap(); // como cambia el orden/recorrido, recalculamos todo
+    deleteBtn.addEventListener("click",()=>{
+      if(currentIdx==null)return;
+      if(!confirm("¿Seguro que quieres eliminar este recuerdo?"))return;
+      memories.splice(currentIdx,1);
+      localStorage.setItem("memories",JSON.stringify(memories));
+      currentIdx=null;closeModal();ensureCapacity();drawMap();
     });
-
-    function closeModal(){ modal.style.display = "none"; }
-
-    // ========= Inicial =========
-    // (sprites onload -> ensureCapacity() -> drawMap())
   </script>
 </body>
 </html>
