@@ -124,7 +124,8 @@
       SHOW_GRID_DURING_ANIM: false,
       SHOW_POIS: true,
       CRISP_ALIGN: true,
-      ANIM_DURATION_MS: 900
+      ANIM_DURATION_MS: 900,
+      ANIM_IDLE: true
     };
 
     // ========= Pixel-art / Tiles =========
@@ -182,8 +183,8 @@
     let loaded = 0, needed = Object.keys(spriteUrls).length;
     function loadImage(target, key, url){
       const img = new Image();
-      img.onload = () => { loaded++; if (loaded === needed && tilesetReady()) { ensureCapacity(); drawMap(); } };
-      img.onerror = () => { loaded++; if (loaded === needed && tilesetReady()) { ensureCapacity(); drawMap(); } };
+      img.onload = () => { loaded++; if (loaded === needed && tilesetReady()) { ensureCapacity(); rebuildStatic(); startIdleLoop(); } };
+      img.onerror = () => { loaded++; if (loaded === needed && tilesetReady()) { ensureCapacity(); rebuildStatic(); startIdleLoop(); } };
       img.src = url; target[key] = img;
     }
     for (const [k,u] of Object.entries(spriteUrls)) loadImage(sprites, k, u);
@@ -192,8 +193,8 @@
     const tilesetUrl = "./assets/tiles/tileset_pixel_life.png";
     let tilesetImg = new Image();
     let tilesetLoaded = false;
-    tilesetImg.onload = () => { tilesetLoaded = true; if (loaded === needed) { ensureCapacity(); drawMap(); } };
-    tilesetImg.onerror = () => { console.warn("No se cargó tileset:", tilesetUrl); tilesetLoaded = false; if (loaded === needed) { ensureCapacity(); drawMap(); } };
+    tilesetImg.onload = () => { tilesetLoaded = true; if (loaded === needed) { ensureCapacity(); rebuildStatic(); startIdleLoop(); } };
+    tilesetImg.onerror = () => { console.warn("No se cargó tileset:", tilesetUrl); tilesetLoaded = false; if (loaded === needed) { ensureCapacity(); rebuildStatic(); startIdleLoop(); } };
     tilesetImg.src = tilesetUrl;
     function tilesetReady(){ return tilesetLoaded; }
 
@@ -215,13 +216,17 @@
       if (r < 0.40) return 3; // colina
       return 0;               // llano
     }
-    function drawTiles() {
-      for (let x=0; x<gridW; x++){
-        for (let y=0; y<gridH; y++){
-          const t = tileType(x,y);
-          const index = (t===0)?0 : (t===1)?1 : (t===2)?2 : (t===3)?3 : 0;
-          blitTile(index, x*tileSize, y*tileSize);
-        }
+
+    // “Sprinkles” para hierba (solo llano)
+    function sprinkleGrass(x, y) {
+      const baseX = x * tileSize, baseY = y * tileSize;
+      const rnd = mulberry32(((x+13)*9973 ^ (y+17)*7919) >>> 0);
+      const dots = 3 + Math.floor(rnd()*4); // 3..6
+      for (let i=0;i<dots;i++){
+        const px = baseX + 2 + Math.floor(rnd()*(tileSize-4));
+        const py = baseY + 2 + Math.floor(rnd()*(tileSize-4));
+        ctx.fillStyle = (rnd()<0.5) ? "#49a84a" : "#53b94f";
+        ctx.fillRect(Math.round(px), Math.round(py), 1, 1);
       }
     }
 
@@ -276,18 +281,6 @@
       ctx.strokeStyle = "#e8d7a5";
       ctx.lineWidth = 10;
       ctx.stroke();
-
-      // POIs del camino (detalle)
-      if (CONFIG.SHOW_POIS) {
-        ctx.fillStyle = "#f0e3b5";
-        for (let i = 1; i <= uptoIndex; i++) {
-          if (i % 3 === 0) {
-            ctx.beginPath();
-            ctx.arc(Math.round(polyline[i].x), Math.round(polyline[i].y), 3, 0, Math.PI*2);
-            ctx.fill();
-          }
-        }
-      }
     }
 
     // ========= Dibujo principal =========
@@ -297,22 +290,48 @@
       gridH=Math.max(12,lastY+4);
       setupCrispCanvas();
     }
-    function drawHouseAndAvatars(){
-      drawSprite(sprites.house,0,0,tileSize,tileSize);
-      if(gridW>=3){
-        drawSprite(sprites.juan,  1*tileSize,0,tileSize,tileSize);
-        drawSprite(sprites.paula, 2*tileSize,0,tileSize,tileSize);
+
+    function drawTiles() {
+      for (let x=0; x<gridW; x++){
+        for (let y=0; y<gridH; y++){
+          const t = tileType(x,y);
+          const index = (t===0)?0 : (t===1)?1 : (t===2)?2 : (t===3)?3 : 0;
+          blitTile(index, x*tileSize, y*tileSize);
+          if (t===0) sprinkleGrass(x,y);
+        }
       }
     }
+
     function drawSprite(img, x, y, w, h) {
       const dx = CONFIG.CRISP_ALIGN ? Math.round(x) : x;
       const dy = CONFIG.CRISP_ALIGN ? Math.round(y) : y;
       ctx.drawImage(img, dx, dy, w, h);
     }
-    function drawPOIAtCell(cellX, cellY, type) {
+
+    // POI en cada recuerdo: rombo + halo pulsante
+    function drawPOIAtCell(cellX, cellY, type, tSec=0) {
       if (!CONFIG.SHOW_POIS) return;
+
+      const cx = cellX*tileSize + tileSize*0.78;
+      const cy = cellY*tileSize + tileSize*0.22;
+
+      // Pulso 0..1 desfasado por celda para variedad
+      const pulse = (Math.sin(tSec*3 + (cellX*7 + cellY*11)*0.2) + 1) / 2;
+      const haloR = 7 + Math.round(3*pulse);   // 7..10
+      const haloA = 0.18 + 0.22*pulse;         // 0.18..0.40
+
+      // Halo circular
       ctx.save();
-      ctx.translate(cellX*tileSize + tileSize*0.78, cellY*tileSize + tileSize*0.22);
+      ctx.globalAlpha = haloA;
+      ctx.fillStyle = "#fff8c4";
+      ctx.beginPath();
+      ctx.arc(Math.round(cx), Math.round(cy), haloR, 0, Math.PI*2);
+      ctx.fill();
+      ctx.restore();
+
+      // Rombito
+      ctx.save();
+      ctx.translate(cx, cy);
       ctx.rotate(Math.PI/4);
       const c = ({
         travel:  "#ffd27a",
@@ -325,57 +344,83 @@
       ctx.fillRect(-4,-4,8,8);
       ctx.restore();
     }
-    function drawIcons(waypoints, uptoIdx = waypoints.length - 1){
+
+    function drawHouseAndAvatars(tSec=0){
+      // bobbing suave (±2 px)
+      const bobJuan  = Math.round(Math.sin(tSec*2.0) * 2);
+      const bobPaula = Math.round(Math.sin(tSec*2.0 + Math.PI/2) * 2);
+      drawSprite(sprites.house,0,0,tileSize,tileSize);
+      if(gridW>=3){
+        drawSprite(sprites.juan,  1*tileSize,0+bobJuan,tileSize,tileSize);
+        drawSprite(sprites.paula, 2*tileSize,0+bobPaula,tileSize,tileSize);
+      }
+    }
+
+    // Dibuja un icono con escala respecto a su centro
+    function drawIconScaled(img, cx, cy, baseSize, scale=1) {
+      const w = Math.round(baseSize * scale);
+      const h = Math.round(baseSize * scale);
+      const dx = Math.round(cx - w/2);
+      const dy = Math.round(cy - h/2);
+      ctx.drawImage(img, dx, dy, w, h);
+    }
+
+    function drawIcons(waypoints, uptoIdx = waypoints.length - 1, tSec=0){
+      const baseSize = Math.round(tileSize*0.73);
       for (let k = 0; k <= uptoIdx && k < waypoints.length; k++) {
         const w = waypoints[k];
         const m = memories[w.idx];
         const icon = sprites[m.type] ?? sprites.camera;
-        drawSprite(icon, w.x*tileSize + 8, w.y*tileSize + 8, Math.round(tileSize*0.73), Math.round(tileSize*0.73));
-        drawPOIAtCell(w.x, w.y, m.type);
+
+        // bobbing sutil
+        const bob = Math.round(Math.sin(tSec*2 + k*0.7) * 2);
+        const cx = w.x*tileSize + 8 + baseSize/2;
+        const cy = w.y*tileSize + 8 + baseSize/2 + bob;
+
+        drawIconScaled(icon, cx, cy, baseSize, 1);
+        drawPOIAtCell(w.x, w.y, m.type, tSec);
       }
     }
-    function drawMap(){
+
+    function drawStatic(){
       const {waypoints,polyline}=computeWaypointsAndPolyline();
       ctx.clearRect(0,0,canvas.width,canvas.height);
       drawTiles();
       drawPath(polyline);
-      drawHouseAndAvatars();
-      drawIcons(waypoints);
+      return {waypoints, polyline};
     }
 
-    // ========= Autoenfoque helpers =========
-    function cellCenter(x, y) { return { x: x*tileSize + tileSize/2, y: y*tileSize + tileSize/2 }; } // (duplicado intencional por legibilidad)
-    function scrollToWaypointCenter(wpCell, delayOpenMs = 350, cb = null) {
-      const center = cellCenter(wpCell.x, wpCell.y);
-      const canvasTopPage = canvas.getBoundingClientRect().top + window.scrollY;
-      const waypointYInPage = canvasTopPage + center.y;
-
-      const viewTop = window.scrollY;
-      const viewBottom = viewTop + window.innerHeight;
-      const margin = tileSize * 1.5;
-
-      // Si ya está dentro, abrimos de inmediato
-      if (waypointYInPage > viewTop + margin && waypointYInPage < viewBottom - margin) {
-        cb && cb();
-        return;
-      }
-
-      const targetY = Math.max(0, Math.round(waypointYInPage - window.innerHeight/2));
-      window.scrollTo({ top: targetY, behavior: 'smooth' });
-
-      // No existe callback del scroll suave; usamos un pequeño timeout
-      setTimeout(()=>{ cb && cb(); }, delayOpenMs);
+    function drawIdleFrame(tSec){
+      const {waypoints} = computeWaypointsAndPolyline();
+      drawHouseAndAvatars(tSec);
+      drawIcons(waypoints, waypoints.length - 1, tSec);
     }
 
-    // ========= Autoenfoque tras crear =========
+    function drawMap(){
+      drawStatic();
+      drawHouseAndAvatars(0);
+      const {waypoints} = computeWaypointsAndPolyline();
+      drawIcons(waypoints, waypoints.length - 1, 0);
+    }
+
+    // ========= Autoenfoque (scroll suave al nuevo recuerdo) =========
     function focusLastWaypointIfBelowView() {
       const { waypoints } = computeWaypointsAndPolyline();
       if (waypoints.length === 0) return;
       const last = waypoints[waypoints.length - 1];
-      scrollToWaypointCenter(last, 10); // no necesitamos esperar para abrir modal aquí
+      const center = cellCenter(last.x, last.y);
+      const canvasTopPage = canvas.getBoundingClientRect().top + window.scrollY;
+      const waypointYInPage = canvasTopPage + center.y;
+      const viewTop = window.scrollY;
+      const viewBottom = viewTop + window.innerHeight;
+      const margin = tileSize * 1.5;
+      if (waypointYInPage > viewBottom - margin) {
+        const targetY = Math.max(0, Math.round(waypointYInPage - window.innerHeight / 2));
+        window.scrollTo({ top: targetY, behavior: 'smooth' });
+      }
     }
 
-    // ========= Animación al añadir =========
+    // ========= Animación al añadir (con POP en el último icono) =========
     function countWaypointsVisible(polyline, uptoIdx) {
       const { waypoints } = computeWaypointsAndPolyline();
       let visible = -1;
@@ -389,6 +434,7 @@
       }
       return visible;
     }
+
     function animateLastSegment() {
       const { waypoints, polyline } = computeWaypointsAndPolyline();
       if (waypoints.length === 0) { drawMap(); return; }
@@ -407,21 +453,47 @@
       const DURATION = CONFIG.ANIM_DURATION_MS;
       let start = null;
 
-      function render(progressIdx) {
+      function render(progressIdx, tSec) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         drawTiles();
         drawPath(polyline, progressIdx);
-        drawHouseAndAvatars();
 
-        const uptoWp = countWaypointsVisible(polyline, progressIdx);
-        drawIcons(waypoints, uptoWp);
+        drawHouseAndAvatars(tSec);
+
+        // ÍNDICE de waypoint visible en este frame
+        const visibleWp = countWaypointsVisible(polyline, progressIdx);
+
+        // Dibujar iconos hasta el visible, aplicando POP al último
+        const wps = computeWaypointsAndPolyline().waypoints;
+        const baseSize = Math.round(tileSize*0.73);
+
+        for (let k=0; k <= visibleWp; k++){
+          const w = wps[k];
+          const m = memories[w.idx];
+          const icon = sprites[m.type] ?? sprites.camera;
+
+          // bobbing
+          const bob = Math.round(Math.sin(tSec*2 + k*0.7) * 2);
+          const cx = w.x*tileSize + 8 + baseSize/2;
+          const cy = w.y*tileSize + 8 + baseSize/2 + bob;
+
+          let scale = 1;
+          if (k === visibleWp) {
+            // POP: 0.9 -> 1.0 durante los últimos ~250ms de la animación
+            const prog = (progressIdx - (prevEnd)) / Math.max(1, (totalEnd - prevEnd));
+            const popPhase = clamp((prog - 0.7) / 0.3, 0, 1); // empieza a 70% de la animación
+            scale = 0.9 + 0.1 * easeInOut(popPhase);
+          }
+          drawIconScaled(icon, cx, cy, baseSize, scale);
+          drawPOIAtCell(w.x, w.y, m.type, tSec);
+        }
 
         // avatar viajero (opcional)
         const a = polyline[progressIdx];
         if (sprites.juan && sprites.juan.width) {
-          ctx.drawImage(sprites.juan, a.x-16, a.y-16, 32, 32);
+          ctx.drawImage(sprites.juan, Math.round(a.x-16), Math.round(a.y-16), 32, 32);
         } else {
-          ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(a.x, a.y, 5, 0, Math.PI*2); ctx.fill();
+          ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(Math.round(a.x), Math.round(a.y), 5, 0, Math.PI*2); ctx.fill();
         }
       }
 
@@ -430,7 +502,7 @@
         const t = Math.min(1, (ts - start) / DURATION);
         const eased = easeInOut(t);
         const idx = Math.max(prevEnd, Math.min(totalEnd, Math.floor(prevEnd + eased * (totalEnd - prevEnd))));
-        render(idx);
+        render(idx, ts/1000);
         if (t < 1) requestAnimationFrame(step);
         else drawMap();
       }
@@ -487,6 +559,7 @@
     const deleteBtn=document.getElementById("deleteBtn");
     let currentIdx=null;
 
+    // Click en icono: scroll centrado y luego modal
     canvas.addEventListener("click",e=>{
       const rect=canvas.getBoundingClientRect();
       const gx=Math.floor((e.clientX-rect.left)/tileSize);
@@ -496,9 +569,7 @@
       const hit=waypoints.find(w=>w.x===gx&&w.y===gy);
       if(!hit) return;
 
-      // 1) Scroll suave para centrar ese waypoint…
       scrollToWaypointCenter(hit, 350, () => {
-        // 2) …y luego abrir modal con los datos
         currentIdx=hit.idx; const m=memories[currentIdx];
         const fallback=({mountain:"Senderismo 🏔️",travel:"Viaje ✈️",game:"Videojuego 🎮",love:"Romántico ❤️",camera:"Recuerdo 📸"})[m.type]??"Recuerdo";
         titleEl.textContent=m.title||fallback;
@@ -507,6 +578,23 @@
         showModal(modal);
       });
     });
+
+    function scrollToWaypointCenter(wpCell, delayOpenMs = 350, cb = null) {
+      const center = cellCenter(wpCell.x, wpCell.y);
+      const canvasTopPage = canvas.getBoundingClientRect().top + window.scrollY;
+      const waypointYInPage = canvasTopPage + center.y;
+
+      const viewTop = window.scrollY;
+      const viewBottom = viewTop + window.innerHeight;
+      const margin = tileSize * 1.5;
+
+      if (waypointYInPage > viewTop + margin && waypointYInPage < viewBottom - margin) {
+        cb && cb(); return;
+      }
+      const targetY = Math.max(0, Math.round(waypointYInPage - window.innerHeight/2));
+      window.scrollTo({ top: targetY, behavior: 'smooth' });
+      setTimeout(()=>{ cb && cb(); }, delayOpenMs);
+    }
 
     saveBtn.addEventListener("click",()=>{
       if(currentIdx==null)return;
@@ -522,13 +610,10 @@
       if(!confirm("¿Seguro que quieres eliminar este recuerdo?"))return;
       memories.splice(currentIdx,1);
       localStorage.setItem("memories",JSON.stringify(memories));
-      currentIdx=null;closeModal();ensureCapacity();drawMap();
+      currentIdx=null;closeModal();ensureCapacity();rebuildStatic();
     });
 
-    // Cerrar con click en fondo y con ESC
-    ;[addModal, modal].forEach(m => {
-      m.addEventListener('click', (e) => { if (e.target === m) hideModal(m); });
-    });
+    ;[addModal, modal].forEach(m => m.addEventListener('click', (e) => { if (e.target === m) hideModal(m); }));
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
         if (addModal.classList.contains('show')) hideModal(addModal);
@@ -536,12 +621,27 @@
       }
     });
 
+    // ========= Idle loop =========
+    let idleRAF = null;
+    function idleFrame(ts){
+      if (!CONFIG.ANIM_IDLE) return;
+      drawStatic();
+      drawIdleFrame(ts/1000);
+      idleRAF = requestAnimationFrame(idleFrame);
+    }
+    function startIdleLoop(){
+      if (!CONFIG.ANIM_IDLE) return;
+      if (idleRAF) cancelAnimationFrame(idleRAF);
+      idleRAF = requestAnimationFrame(idleFrame);
+    }
+    function rebuildStatic(){ drawMap(); }
+
     // Inicial
     ensureCapacity();
-    drawMap();
+    rebuildStatic();
+    startIdleLoop();
 
-    // Redimensionado (p.ej. cambio de DPR)
-    window.addEventListener('resize', () => { ensureCapacity(); drawMap(); });
+    window.addEventListener('resize', () => { ensureCapacity(); rebuildStatic(); });
   </script>
 </body>
 </html>
