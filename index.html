@@ -10,12 +10,20 @@
       background:#222; color:#fff; font-family: system-ui, sans-serif;
       display:flex; flex-direction:column; align-items:center; margin:0; padding:20px;
     }
+    header {
+      width:100%; max-width:640px; display:flex; align-items:center; justify-content:space-between;
+      gap:12px; margin-bottom:16px;
+    }
     h1 {
       font-family:'Press Start 2P', cursive;
-      font-size:28px; margin:0 0 20px;
+      font-size:28px; margin:0;
       color:#ffcc00; text-shadow:3px 3px 0 #000, 6px 6px 0 #d62828;
       letter-spacing:1px;
     }
+    .controls { display:flex; align-items:center; gap:12px; }
+    .switch { display:flex; align-items:center; gap:6px; font-size:12px; opacity:.9; }
+    .switch input { transform: scale(1.1); }
+
     button { padding:10px 16px; border-radius:8px; border:none; font-weight:700; cursor:pointer; }
     button.primary { background:#00c775; color:#111; }
     button.secondary { background:#e9e9e9; color:#222; }
@@ -46,9 +54,14 @@
   </style>
 </head>
 <body>
-  <h1>Pixel Life</h1>
+  <header>
+    <h1>Pixel Life</h1>
+    <div class="controls">
+      <label class="switch"><input type="checkbox" id="toggleDayNight" checked> Ciclo día/noche</label>
+      <button id="openAddModal" class="primary">+ Añadir recuerdo</button>
+    </div>
+  </header>
 
-  <button id="openAddModal" class="primary">+ Añadir recuerdo</button>
   <canvas id="map" width="480" height="576" aria-label="Mapa de recuerdos"></canvas>
 
   <!-- Modal Añadir -->
@@ -125,7 +138,9 @@
       SHOW_POIS: true,
       CRISP_ALIGN: true,
       ANIM_DURATION_MS: 900,
-      ANIM_IDLE: true
+      ANIM_IDLE: true,
+      DAY_NIGHT: true,
+      DAY_NIGHT_SECONDS: 30 // ciclo completo día->noche->día
     };
 
     // ========= Pixel-art / Tiles =========
@@ -137,7 +152,6 @@
     const clamp = (v,min,max)=>Math.max(min,Math.min(max,v));
     const easeInOut = t => (t<.5) ? 2*t*t : 1 - Math.pow(-2*t+2,2)/2;
 
-    // PRNG determinista
     function mulberry32(a){return function(){let t=a+=0x6D2B79F5;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return ((t^(t>>>14))>>>0)/4294967296;};}
     function seeded(seed, salt){ const s=(seed ^ (salt*0x9E3779B9))>>>0; return mulberry32(s)(); }
     function randIntSeeded(min, max, seed, salt){ const r=seeded(seed, salt); return Math.floor(r*(max-min+1))+min; }
@@ -148,10 +162,9 @@
     const houseCol = 0, houseRow = 0;
     const minX = 1, maxX = gridW - 2;
 
-    // Semilla y datos
     let seed = Number(localStorage.getItem("pixelLifeSeed"));
     if (!seed) { seed = (Date.now() ^ Math.floor(Math.random() * 1e9)) >>> 0; localStorage.setItem("pixelLifeSeed", String(seed)); }
-    let memories = JSON.parse(localStorage.getItem("memories") || "[]"); // {title,text,type,createdAt}
+    let memories = JSON.parse(localStorage.getItem("memories") || "[]");
 
     // ========= Canvas =========
     const canvas = document.getElementById("map");
@@ -168,7 +181,7 @@
       ctx.imageSmoothingEnabled = false;
     }
 
-    // ========= Sprites (iconos y casa) =========
+    // ========= Sprites =========
     const spriteUrls = {
       house: "./assets/sprites/memories/house.png",
       juan: "./assets/sprites/memories/juan.png",
@@ -189,7 +202,7 @@
     }
     for (const [k,u] of Object.entries(spriteUrls)) loadImage(sprites, k, u);
 
-    // ========= Tileset (terreno) =========
+    // ========= Tileset =========
     const tilesetUrl = "./assets/tiles/tileset_pixel_life.png";
     let tilesetImg = new Image();
     let tilesetLoaded = false;
@@ -217,11 +230,10 @@
       return 0;               // llano
     }
 
-    // “Sprinkles” para hierba (solo llano)
     function sprinkleGrass(x, y) {
       const baseX = x * tileSize, baseY = y * tileSize;
       const rnd = mulberry32(((x+13)*9973 ^ (y+17)*7919) >>> 0);
-      const dots = 3 + Math.floor(rnd()*4); // 3..6
+      const dots = 3 + Math.floor(rnd()*4);
       for (let i=0;i<dots;i++){
         const px = baseX + 2 + Math.floor(rnd()*(tileSize-4));
         const py = baseY + 2 + Math.floor(rnd()*(tileSize-4));
@@ -230,13 +242,13 @@
       }
     }
 
-    // ========= Camino por polilínea (trazo) =========
+    // ========= Camino =========
     function cellCenter(x, y) { return { x: x*tileSize + tileSize/2, y: y*tileSize + tileSize/2 }; }
 
     function computeWaypointsAndPolyline() {
       const waypoints=[], polyline=[];
       let curX=houseCol, curY=houseRow;
-      if (gridW>1) curX=1; // primer paso a la derecha
+      if (gridW>1) curX=1;
       polyline.push(cellCenter(houseCol, houseRow));
       polyline.push(cellCenter(curX, curY));
 
@@ -262,28 +274,85 @@
     function drawPath(polyline, uptoIndex = polyline.length - 1) {
       if (polyline.length < 2) return;
       uptoIndex = Math.max(1, Math.min(uptoIndex, polyline.length - 1));
+      ctx.lineCap = "round"; ctx.lineJoin = "round";
 
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
-
-      // Base tierra
+      // base
       ctx.beginPath();
       ctx.moveTo(Math.round(polyline[0].x), Math.round(polyline[0].y));
       for (let i = 1; i <= uptoIndex; i++) ctx.lineTo(Math.round(polyline[i].x), Math.round(polyline[i].y));
       ctx.strokeStyle = "#c2b280";
-      ctx.lineWidth = 22;
-      ctx.stroke();
+      ctx.lineWidth = 22; ctx.stroke();
 
-      // Luz/relieve superior
+      // highlight
       ctx.beginPath();
       ctx.moveTo(Math.round(polyline[0].x), Math.round(polyline[0].y));
       for (let i = 1; i <= uptoIndex; i++) ctx.lineTo(Math.round(polyline[i].x), Math.round(polyline[i].y));
       ctx.strokeStyle = "#e8d7a5";
-      ctx.lineWidth = 10;
-      ctx.stroke();
+      ctx.lineWidth = 10; ctx.stroke();
     }
 
-    // ========= Dibujo principal =========
+    // ========= Día/Noche =========
+    const dayNightCheckbox = document.getElementById('toggleDayNight');
+    dayNightCheckbox.checked = CONFIG.DAY_NIGHT;
+    dayNightCheckbox.addEventListener('change', () => {
+      CONFIG.DAY_NIGHT = dayNightCheckbox.checked;
+    });
+
+    function getDayNightPhase(tSec){
+      // Fase 0..1 (0 = mediodía claro, 0.5 = medianoche, 1 = mediodía)
+      const T = CONFIG.DAY_NIGHT_SECONDS;
+      const phi = (tSec % T) / T; // 0..1
+      // seno doblado para tener noche centrada en 0.5
+      const nightness = 0.5 - 0.5 * Math.cos(2*Math.PI*phi); // 0..1
+      return nightness;
+    }
+
+    function drawNightOverlay(tSec){
+      if (!CONFIG.DAY_NIGHT) return;
+      const nightness = getDayNightPhase(tSec); // 0..1
+
+      // Ligerísimo tinte al atardecer/amanecer, más fuerte de noche
+      const maxAlpha = 0.55; // cuán oscura la noche
+      const alpha = nightness * maxAlpha;
+
+      // Overlay azulado
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = "#0b1b3a"; // azul noche
+      ctx.fillRect(0,0,canvas.width,canvas.height);
+      ctx.restore();
+
+      // Estrellas: aparecen solo cuando nightness > 0.2
+      if (nightness > 0.2) {
+        const starCount = Math.min(120, Math.floor((nightness-0.2)*200));
+        // PRNG seeding estable para que no parpadeen de posición, solo en brillo
+        const rnd = mulberry32(0xA5F42C91);
+        for (let i=0; i<starCount; i++){
+          const x = Math.floor(rnd() * canvas.width);
+          const y = Math.floor(rnd() * canvas.height);
+          // brillo pulsante
+          const tw = (Math.sin(tSec*3 + i*0.37) + 1)/2; // 0..1
+          const a  = 0.25 + tw*0.55; // 0.25..0.8
+          ctx.save();
+          ctx.globalAlpha = a * (0.4 + 0.6*nightness);
+          ctx.fillStyle = "#fff8c4";
+          // pixel-star 1x1 o cruz 3x3 según “suerte”
+          if (rnd() < 0.2) {
+            // cruz pequeña (simula destello)
+            ctx.fillRect(x-1,y,1,1);
+            ctx.fillRect(x+1,y,1,1);
+            ctx.fillRect(x,y-1,1,1);
+            ctx.fillRect(x,y+1,1,1);
+            ctx.fillRect(x,y,1,1);
+          } else {
+            ctx.fillRect(x,y,1,1);
+          }
+          ctx.restore();
+        }
+      }
+    }
+
+    // ========= Dibujo principal + animación idle =========
     function ensureCapacity(){
       const {waypoints}=computeWaypointsAndPolyline();
       const lastY=waypoints.length?waypoints[waypoints.length-1].y:0;
@@ -308,19 +377,15 @@
       ctx.drawImage(img, dx, dy, w, h);
     }
 
-    // POI en cada recuerdo: rombo + halo pulsante
     function drawPOIAtCell(cellX, cellY, type, tSec=0) {
       if (!CONFIG.SHOW_POIS) return;
-
       const cx = cellX*tileSize + tileSize*0.78;
       const cy = cellY*tileSize + tileSize*0.22;
 
-      // Pulso 0..1 desfasado por celda para variedad
       const pulse = (Math.sin(tSec*3 + (cellX*7 + cellY*11)*0.2) + 1) / 2;
-      const haloR = 7 + Math.round(3*pulse);   // 7..10
-      const haloA = 0.18 + 0.22*pulse;         // 0.18..0.40
+      const haloR = 7 + Math.round(3*pulse);
+      const haloA = 0.18 + 0.22*pulse;
 
-      // Halo circular
       ctx.save();
       ctx.globalAlpha = haloA;
       ctx.fillStyle = "#fff8c4";
@@ -329,7 +394,6 @@
       ctx.fill();
       ctx.restore();
 
-      // Rombito
       ctx.save();
       ctx.translate(cx, cy);
       ctx.rotate(Math.PI/4);
@@ -346,7 +410,6 @@
     }
 
     function drawHouseAndAvatars(tSec=0){
-      // bobbing suave (±2 px)
       const bobJuan  = Math.round(Math.sin(tSec*2.0) * 2);
       const bobPaula = Math.round(Math.sin(tSec*2.0 + Math.PI/2) * 2);
       drawSprite(sprites.house,0,0,tileSize,tileSize);
@@ -356,7 +419,6 @@
       }
     }
 
-    // Dibuja un icono con escala respecto a su centro
     function drawIconScaled(img, cx, cy, baseSize, scale=1) {
       const w = Math.round(baseSize * scale);
       const h = Math.round(baseSize * scale);
@@ -371,22 +433,20 @@
         const w = waypoints[k];
         const m = memories[w.idx];
         const icon = sprites[m.type] ?? sprites.camera;
-
-        // bobbing sutil
         const bob = Math.round(Math.sin(tSec*2 + k*0.7) * 2);
         const cx = w.x*tileSize + 8 + baseSize/2;
         const cy = w.y*tileSize + 8 + baseSize/2 + bob;
-
         drawIconScaled(icon, cx, cy, baseSize, 1);
         drawPOIAtCell(w.x, w.y, m.type, tSec);
       }
     }
 
-    function drawStatic(){
+    function drawStatic(tSec=0){
       const {waypoints,polyline}=computeWaypointsAndPolyline();
       ctx.clearRect(0,0,canvas.width,canvas.height);
       drawTiles();
       drawPath(polyline);
+      drawNightOverlay(tSec); // overlay por encima del mundo/base
       return {waypoints, polyline};
     }
 
@@ -396,14 +456,14 @@
       drawIcons(waypoints, waypoints.length - 1, tSec);
     }
 
-    function drawMap(){
-      drawStatic();
-      drawHouseAndAvatars(0);
+    function drawMap(tSec=0){
+      drawStatic(tSec);
+      drawHouseAndAvatars(tSec);
       const {waypoints} = computeWaypointsAndPolyline();
-      drawIcons(waypoints, waypoints.length - 1, 0);
+      drawIcons(waypoints, waypoints.length - 1, tSec);
     }
 
-    // ========= Autoenfoque (scroll suave al nuevo recuerdo) =========
+    // ========= Autoenfoque =========
     function focusLastWaypointIfBelowView() {
       const { waypoints } = computeWaypointsAndPolyline();
       if (waypoints.length === 0) return;
@@ -420,7 +480,7 @@
       }
     }
 
-    // ========= Animación al añadir (con POP en el último icono) =========
+    // ========= Animación al añadir (con POP) =========
     function countWaypointsVisible(polyline, uptoIdx) {
       const { waypoints } = computeWaypointsAndPolyline();
       let visible = -1;
@@ -439,7 +499,6 @@
       const { waypoints, polyline } = computeWaypointsAndPolyline();
       if (waypoints.length === 0) { drawMap(); return; }
 
-      // Índice donde acababa antes
       let prevEnd = 1;
       if (memories.length > 1) {
         const prevMems = memories.slice(0, memories.length - 1);
@@ -457,13 +516,11 @@
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         drawTiles();
         drawPath(polyline, progressIdx);
+        drawNightOverlay(tSec);
 
         drawHouseAndAvatars(tSec);
 
-        // ÍNDICE de waypoint visible en este frame
         const visibleWp = countWaypointsVisible(polyline, progressIdx);
-
-        // Dibujar iconos hasta el visible, aplicando POP al último
         const wps = computeWaypointsAndPolyline().waypoints;
         const baseSize = Math.round(tileSize*0.73);
 
@@ -472,23 +529,20 @@
           const m = memories[w.idx];
           const icon = sprites[m.type] ?? sprites.camera;
 
-          // bobbing
           const bob = Math.round(Math.sin(tSec*2 + k*0.7) * 2);
           const cx = w.x*tileSize + 8 + baseSize/2;
           const cy = w.y*tileSize + 8 + baseSize/2 + bob;
 
           let scale = 1;
           if (k === visibleWp) {
-            // POP: 0.9 -> 1.0 durante los últimos ~250ms de la animación
             const prog = (progressIdx - (prevEnd)) / Math.max(1, (totalEnd - prevEnd));
-            const popPhase = clamp((prog - 0.7) / 0.3, 0, 1); // empieza a 70% de la animación
+            const popPhase = clamp((prog - 0.7) / 0.3, 0, 1);
             scale = 0.9 + 0.1 * easeInOut(popPhase);
           }
           drawIconScaled(icon, cx, cy, baseSize, scale);
           drawPOIAtCell(w.x, w.y, m.type, tSec);
         }
 
-        // avatar viajero (opcional)
         const a = polyline[progressIdx];
         if (sprites.juan && sprites.juan.width) {
           ctx.drawImage(sprites.juan, Math.round(a.x-16), Math.round(a.y-16), 32, 32);
@@ -504,17 +558,16 @@
         const idx = Math.max(prevEnd, Math.min(totalEnd, Math.floor(prevEnd + eased * (totalEnd - prevEnd))));
         render(idx, ts/1000);
         if (t < 1) requestAnimationFrame(step);
-        else drawMap();
+        else drawMap(ts/1000);
       }
       requestAnimationFrame(step);
     }
 
-    // ========= Helpers de modal (UI) =========
+    // ========= UI Modales, etc. =========
     function showModal(el){ el.classList.add('show'); document.body.classList.add('no-scroll'); }
     function hideModal(el){ el.classList.remove('show'); document.body.classList.remove('no-scroll'); }
     function closeModal(){ hideModal(modal); }
 
-    // ===== Alta (modal Añadir) =====
     const openAddModalBtn=document.getElementById("openAddModal");
     const addModal=document.getElementById("addModal");
     const cancelAdd=document.getElementById("cancelAdd");
@@ -542,13 +595,12 @@
       localStorage.setItem("memories",JSON.stringify(memories));
 
       ensureCapacity();
-      focusLastWaypointIfBelowView(); // scroll suave si cae abajo
+      focusLastWaypointIfBelowView();
       animateLastSegment();
 
       hideModal(addModal);
     });
 
-    // ===== Edición =====
     const modal=document.getElementById("modal");
     const titleEl=document.getElementById("memoryTitle");
     const idRow=document.getElementById("idRow");
@@ -559,7 +611,6 @@
     const deleteBtn=document.getElementById("deleteBtn");
     let currentIdx=null;
 
-    // Click en icono: scroll centrado y luego modal
     canvas.addEventListener("click",e=>{
       const rect=canvas.getBoundingClientRect();
       const gx=Math.floor((e.clientX-rect.left)/tileSize);
@@ -625,8 +676,9 @@
     let idleRAF = null;
     function idleFrame(ts){
       if (!CONFIG.ANIM_IDLE) return;
-      drawStatic();
-      drawIdleFrame(ts/1000);
+      const tSec = ts/1000;
+      drawStatic(tSec);
+      drawIdleFrame(tSec);
       idleRAF = requestAnimationFrame(idleFrame);
     }
     function startIdleLoop(){
