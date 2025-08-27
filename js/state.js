@@ -1,6 +1,7 @@
+// js/state.js
 import { tileSize } from "./config.js";
 
-export let gridW = 10;
+export let gridW = 16;
 export let gridH = 12;
 export const houseCol = 0,
   houseRow = 0;
@@ -19,24 +20,20 @@ export function setMemories(arr) {
   memories = arr;
   localStorage.setItem("memories", JSON.stringify(memories));
 }
-
 export function pushMemory(m) {
   memories.push(m);
   localStorage.setItem("memories", JSON.stringify(memories));
 }
-
 export function deleteMemoryAt(idx) {
   memories.splice(idx, 1);
   localStorage.setItem("memories", JSON.stringify(memories));
 }
 
-export function ensureCapacity() {
-  // gridH se ajusta en render según última waypoint; aquí solo lo exponemos
-  return { gridW, gridH, tileSize };
-}
-
 export function setGridH(newH) {
   gridH = newH;
+}
+export function setGridW(newW) {
+  gridW = newW;
 }
 
 export function cellCenter(x, y) {

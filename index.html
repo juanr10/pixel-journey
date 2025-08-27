@@ -10,7 +10,6 @@
   <header>
     <h1>Pixel Journey</h1>
 
-    <!-- Barra de controles bajo el título -->
     <div class="controlBar">
       <label class="nightSwitch" id="nightSwitchLabel" aria-label="Cambiar modo noche">
         <input type="checkbox" id="toggleNight" aria-label="Modo noche">
@@ -23,7 +22,9 @@
     </div>
   </header>
 
-  <canvas id="map" width="480" height="576" aria-label="Mapa de recuerdos - Pixel Journey"></canvas>
+  <div class="boardWrap">
+    <canvas id="map" width="480" height="576" aria-label="Mapa de recuerdos - Pixel Journey"></canvas>
+  </div>
 
   <!-- Modal Añadir -->
   <div id="addModal" class="modal" role="dialog" aria-modal="true">

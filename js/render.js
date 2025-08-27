@@ -2,10 +2,10 @@
 import { CONFIG, tileSize } from "./config.js";
 import { clamp, easeInOut } from "./utils.js";
 import { gridW, gridH, seed, memories, setGridH, cellCenter } from "./state.js";
-import { tilesetReady, drawTiles } from "./tiles.js";
+import { drawTiles } from "./tiles.js";
 import { sprites } from "./sprites.js";
 import { drawPOIAtCell } from "./poi.js";
-import { computeWaypointsAndPolyline, drawPath } from "./path.js";
+import { computeWaypointsAndPolyline } from "./path.js";
 import { spawnSparkles, updateAndDrawSparkles } from "./particles.js";
 import { updateClouds, drawClouds } from "./clouds.js";
 
@@ -19,7 +19,6 @@ export function initCanvas() {
   setupCrispCanvas();
   return { canvas, ctx };
 }
-
 export function getCanvas() {
   return canvas;
 }
@@ -36,21 +35,20 @@ export function setupCrispCanvas() {
   canvas.width = Math.round(logicalW * dpr);
   canvas.height = Math.round(logicalH * dpr);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.imageSmoothingEnabled = false; // pixel-art por defecto
+  ctx.imageSmoothingEnabled = false;
 }
 
 // ========= Overlay Noche (manual) =========
 export function drawNightOverlay(tSec) {
   if (!CONFIG.IS_NIGHT) return;
-
-  const alpha = 0.55; // oscuridad fija en modo noche
+  const alpha = 0.55;
   ctx.save();
   ctx.globalAlpha = alpha;
   ctx.fillStyle = "#0b1b3a";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.restore();
 
-  // Estrellas (twinkle con tSec)
+  // estrellas
   const starCount = 100;
   const rnd = ((a) => () => {
     let t = (a += 0x6d2b79f5);
@@ -72,27 +70,76 @@ export function drawNightOverlay(tSec) {
       ctx.fillRect(x, y - 1, 1, 1);
       ctx.fillRect(x, y + 1, 1, 1);
       ctx.fillRect(x, y, 1, 1);
-    } else {
-      ctx.fillRect(x, y, 1, 1);
-    }
+    } else ctx.fillRect(x, y, 1, 1);
     ctx.restore();
   }
 }
 
-// ========= Layout dinámico (alto del mapa) =========
+// ========= Helpers máscara no-agua =========
+function cellFromPoint(p) {
+  const gx = Math.round((p.x - tileSize / 2) / tileSize);
+  const gy = Math.round((p.y - tileSize / 2) / tileSize);
+  return { gx, gy };
+}
+function buildNoWaterMask(polyline, waypoints) {
+  const mask = new Set();
+  // Casa + avatares (primer fila)
+  mask.add(`0,0`);
+  mask.add(`1,0`);
+  mask.add(`2,0`);
+  for (const p of polyline) {
+    const { gx, gy } = cellFromPoint(p);
+    for (let dx = -1; dx <= 1; dx++) {
+      for (let dy = -1; dy <= 1; dy++) {
+        mask.add(`${gx + dx},${gy + dy}`);
+      }
+    }
+  }
+  for (const w of waypoints) mask.add(`${w.x},${w.y}`);
+  return mask;
+}
+
+// ========= Layout dinámico =========
 export function ensureCapacity() {
   const { waypoints } = computeWaypointsAndPolyline(memories, seed, gridW);
   const lastY = waypoints.length ? waypoints[waypoints.length - 1].y : 0;
-  setGridH(Math.max(12, lastY + 4));
+  setGridH(Math.max(12, lastY + 6)); // respiración extra
   setupCrispCanvas();
 }
 
-// ========= Dibujo de avatares / iconos =========
+// ========= Avatares / iconos =========
 function drawHouseAndAvatars(tSec = 0) {
   const bobJuan = Math.round(Math.sin(tSec * 2.0) * 2);
   const bobPaula = Math.round(Math.sin(tSec * 2.0 + Math.PI / 2) * 2);
   ctx.drawImage(sprites.house, 0, 0, tileSize, tileSize);
   if (gridW >= 3) {
+    ctx.save();
+    ctx.globalAlpha = 0.25;
+    ctx.fillStyle = "#2b3a1f";
+    ctx.beginPath();
+    ctx.ellipse(
+      tileSize * 1.5,
+      tileSize * 0.93,
+      tileSize * 0.28,
+      tileSize * 0.1,
+      0,
+      0,
+      Math.PI * 2
+    );
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(
+      tileSize * 2.5,
+      tileSize * 0.93,
+      tileSize * 0.28,
+      tileSize * 0.1,
+      0,
+      0,
+      Math.PI * 2
+    );
+    ctx.fill();
+    ctx.restore();
+
     ctx.drawImage(sprites.juan, tileSize, 0 + bobJuan, tileSize, tileSize);
     ctx.drawImage(
       sprites.paula,
@@ -103,15 +150,28 @@ function drawHouseAndAvatars(tSec = 0) {
     );
   }
 }
-
 function drawIconScaled(img, cx, cy, baseSize, scale = 1) {
   const w = Math.round(baseSize * scale);
   const h = Math.round(baseSize * scale);
   const dx = Math.round(cx - w / 2);
   const dy = Math.round(cy - h / 2);
+  ctx.save();
+  ctx.globalAlpha = 0.22;
+  ctx.fillStyle = "#2b3a1f";
+  ctx.beginPath();
+  ctx.ellipse(
+    Math.round(cx),
+    Math.round(cy + h * 0.32),
+    w * 0.35,
+    h * 0.18,
+    0,
+    0,
+    Math.PI * 2
+  );
+  ctx.fill();
+  ctx.restore();
   ctx.drawImage(img, dx, dy, w, h);
 }
-
 function drawIcons(waypoints, uptoIdx = waypoints.length - 1, tSec = 0) {
   const baseSize = Math.round(tileSize * 0.73);
   for (let k = 0; k <= uptoIdx && k < waypoints.length; k++) {
@@ -126,6 +186,38 @@ function drawIcons(waypoints, uptoIdx = waypoints.length - 1, tSec = 0) {
   }
 }
 
+// ========= Camino =========
+function drawPathWithShadow(polyline, uptoIndex = polyline.length - 1) {
+  if (polyline.length < 2) return;
+  uptoIndex = Math.max(1, Math.min(uptoIndex, polyline.length - 1));
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+
+  ctx.beginPath();
+  ctx.moveTo(Math.round(polyline[0].x), Math.round(polyline[0].y));
+  for (let i = 1; i <= uptoIndex; i++)
+    ctx.lineTo(Math.round(polyline[i].x), Math.round(polyline[i].y));
+  ctx.strokeStyle = "rgba(50,40,20,0.35)";
+  ctx.lineWidth = 26;
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(Math.round(polyline[0].x), Math.round(polyline[0].y));
+  for (let i = 1; i <= uptoIndex; i++)
+    ctx.lineTo(Math.round(polyline[i].x), Math.round(polyline[i].y));
+  ctx.strokeStyle = "#c2b280";
+  ctx.lineWidth = 22;
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(Math.round(polyline[0].x), Math.round(polyline[0].y));
+  for (let i = 1; i <= uptoIndex; i++)
+    ctx.lineTo(Math.round(polyline[i].x), Math.round(polyline[i].y));
+  ctx.strokeStyle = "#e8d7a5";
+  ctx.lineWidth = 10;
+  ctx.stroke();
+}
+
 // ========= Dibujo principal =========
 export function drawStatic(tSec = 0) {
   const { waypoints, polyline } = computeWaypointsAndPolyline(
@@ -133,10 +225,12 @@ export function drawStatic(tSec = 0) {
     seed,
     gridW
   );
+  const mask = buildNoWaterMask(polyline, waypoints);
+
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  drawTiles(ctx, gridW, gridH, seed);
-  drawPath(ctx, polyline);
-  drawNightOverlay(tSec); // overlay bajo las nubes
+  drawTiles(ctx, gridW, gridH, seed, mask);
+  drawPathWithShadow(polyline);
+  drawNightOverlay(tSec);
   return { waypoints, polyline };
 }
 
@@ -145,7 +239,7 @@ export function drawIdleFrame(tSec, dt = 0) {
   drawHouseAndAvatars(tSec);
   drawIcons(waypoints, waypoints.length - 1, tSec);
   updateAndDrawSparkles(ctx, dt);
-  drawClouds(ctx, tSec); // nubes por encima de todo
+  drawClouds(ctx, tSec);
 }
 
 export function drawMap(tSec = 0) {
@@ -156,7 +250,7 @@ export function drawMap(tSec = 0) {
   drawClouds(ctx, tSec);
 }
 
-// ========= Autoenfoque al último recuerdo si cae por debajo =========
+// ========= Autoenfoque =========
 export function focusLastWaypointIfBelowView() {
   const { waypoints } = computeWaypointsAndPolyline(memories, seed, gridW);
   if (waypoints.length === 0) return;
@@ -176,7 +270,7 @@ export function focusLastWaypointIfBelowView() {
   }
 }
 
-// ========= Animación al añadir (camino + POP + chispas) =========
+// ========= Animación al añadir =========
 function countWaypointsVisible(polyline, uptoIdx) {
   const { waypoints } = computeWaypointsAndPolyline(memories, seed, gridW);
   let visible = -1;
@@ -220,8 +314,9 @@ export function animateLastSegment() {
 
   function render(progressIdx, tSec, dt) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    drawTiles(ctx, gridW, gridH, seed);
-    drawPath(ctx, polyline, progressIdx);
+    const mask = buildNoWaterMask(polyline, waypoints);
+    drawTiles(ctx, gridW, gridH, seed, mask);
+    drawPathWithShadow(polyline, progressIdx);
     drawNightOverlay(tSec);
 
     const visibleWp = countWaypointsVisible(polyline, progressIdx);
@@ -253,7 +348,6 @@ export function animateLastSegment() {
       drawPOIAtCell(ctx, w.x, w.y, m.type, tSec);
     }
 
-    // avatar viajero opcional en el extremo de la animación
     const a = polyline[progressIdx];
     if (sprites.juan && sprites.juan.width) {
       ctx.drawImage(
@@ -271,7 +365,7 @@ export function animateLastSegment() {
     }
 
     updateAndDrawSparkles(ctx, dt);
-    drawClouds(ctx, tSec); // nubes por encima
+    drawClouds(ctx, tSec);
   }
 
   function step(ts) {

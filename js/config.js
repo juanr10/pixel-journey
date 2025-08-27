@@ -1,4 +1,22 @@
+// js/config.js
 export const NIGHT_STORAGE_KEY = "pixelLifeNight";
+
+// Tile base (pixel-art de 16px) escalado responsive
+export let TILE_SRC_PX = 16;
+export let TILE_SCALE = 3; // se recalcula en runtime
+export let tileSize = TILE_SRC_PX * TILE_SCALE;
+
+function computeScale() {
+  const w = window.innerWidth;
+  // Más contenido pero controlado: 48px (móvil), 64px (tablet/desktop)
+  if (w <= 768) return 3; // 16*3 = 48
+  return 4; // 16*4 = 64
+}
+
+export function recomputeTileSize() {
+  TILE_SCALE = computeScale();
+  tileSize = TILE_SRC_PX * TILE_SCALE;
+}
 
 const storedNight = (() => {
   try {
@@ -21,8 +39,3 @@ export const CONFIG = {
 
   CLOUDS: true,
 };
-
-// Tile base (pixel-art tileset 16px escalado a 48px)
-export const TILE_SRC_PX = 16;
-export const TILE_SCALE = 3;
-export const tileSize = TILE_SRC_PX * TILE_SCALE;
