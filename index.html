@@ -3,7 +3,6 @@
 <head>
   <meta charset="UTF-8" />
   <title>Pixel Life</title>
-  <!-- Fuente retro estilo Mario -->
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
   <style>
     :root { color-scheme: light dark; }
@@ -11,78 +10,52 @@
       background:#222; color:#fff; font-family: system-ui, sans-serif;
       display:flex; flex-direction:column; align-items:center; margin:0; padding:20px;
     }
-
     h1 {
-      font-family: 'Press Start 2P', cursive;
-      font-size: 28px;
-      margin:0 0 20px;
-      color: #ffcc00;
-      text-shadow: 3px 3px 0 #000, 6px 6px 0 #d62828;
-      letter-spacing: 1px;
+      font-family:'Press Start 2P', cursive;
+      font-size:28px; margin:0 0 20px;
+      color:#ffcc00; text-shadow:3px 3px 0 #000, 6px 6px 0 #d62828;
+      letter-spacing:1px;
     }
-
-    button {
-      padding:10px 16px; border-radius:8px; border:none; font-weight:700; cursor:pointer;
-    }
+    button { padding:10px 16px; border-radius:8px; border:none; font-weight:700; cursor:pointer; }
     button.primary { background:#00c775; color:#111; }
     button.secondary { background:#e9e9e9; color:#222; }
     button.danger { background:#ff5c5c; color:#111; }
     button:hover { filter:brightness(1.05); }
-
     canvas { background:#4caf50; margin-top:16px; border-radius:8px; cursor:pointer; }
 
-    /* No scroll cuando un modal está abierto */
-    body.no-scroll { overflow: hidden; }
-
-    /* ==== Modales con transiciones ==== */
+    body.no-scroll { overflow:hidden; }
     .modal {
-      position:fixed; inset:0;
-      display:flex; align-items:center; justify-content:center;
-      background:rgba(0,0,0,.5);
-      padding:20px;
+      position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+      background:rgba(0,0,0,.5); padding:20px;
       opacity:0; visibility:hidden; pointer-events:none;
-      transition: opacity .18s ease, visibility .18s ease;
-      z-index: 15;
+      transition:opacity .18s ease, visibility .18s ease; z-index:15;
     }
     .modal.show { opacity:1; visibility:visible; pointer-events:auto; }
     .modalInner {
-      width:min(92vw,480px);
-      background:#fff; color:#111;
-      border-radius:12px; padding:20px;
-      box-shadow:0 10px 40px rgba(0,0,0,.4);
-      transform: scale(.98);
-      opacity:.95;
-      transition: transform .18s ease, opacity .18s ease;
+      width:min(92vw,480px); background:#fff; color:#111; border-radius:12px; padding:20px;
+      box-shadow:0 10px 40px rgba(0,0,0,.4); transform:scale(.98); opacity:.95;
+      transition:transform .18s ease, opacity .18s ease;
     }
-    .modal.show .modalInner { transform: scale(1); opacity:1; }
-
-    .modal h2 { margin:0 0 16px; font-family: 'Press Start 2P', cursive; font-size:14px; color:#333; }
+    .modal.show .modalInner { transform:scale(1); opacity:1; }
+    .modal h2 { margin:0 0 16px; font-family:'Press Start 2P', cursive; font-size:14px; color:#333; }
     .formRow { display:flex; flex-direction:column; margin-bottom:14px; }
     .formRow label { font-size:.85rem; margin-bottom:4px; color:#444; }
-    .formRow input, .formRow textarea, .formRow select {
-      padding:8px; border-radius:6px; border:1px solid #ccc; font-family:inherit;
-    }
+    .formRow input, .formRow textarea, .formRow select { padding:8px; border-radius:6px; border:1px solid #ccc; font-family:inherit; }
     .modalActions { display:flex; justify-content:space-between; gap:8px; margin-top:16px; }
     .muted { opacity:.8; font-size:.85rem; color:#666; margin-bottom:14px; }
   </style>
 </head>
-
 <body>
   <h1>Pixel Life</h1>
 
-  <!-- Botón superior para abrir modal de alta -->
   <button id="openAddModal" class="primary">+ Añadir recuerdo</button>
-
   <canvas id="map" width="480" height="576" aria-label="Mapa de recuerdos"></canvas>
 
   <!-- Modal Añadir -->
   <div id="addModal" class="modal" role="dialog" aria-modal="true">
     <div class="modalInner">
       <h2>Nuevo recuerdo</h2>
-
-      <!-- addMeta ANTES de la categoría (checkpoint) -->
       <div id="addMeta" class="muted"></div>
-
       <div class="formRow">
         <label for="addType">Categoría</label>
         <select id="addType">
@@ -93,17 +66,14 @@
           <option value="camera">Genérico 📸</option>
         </select>
       </div>
-
       <div class="formRow">
         <label for="addTitle">Título</label>
         <input type="text" id="addTitle" placeholder="Ej. Viaje a París" required>
       </div>
-
       <div class="formRow">
         <label for="addText">Descripción</label>
         <textarea id="addText" rows="3" placeholder="Escribe un detalle bonito..." required></textarea>
       </div>
-
       <div class="modalActions">
         <div></div>
         <div>
@@ -118,9 +88,7 @@
   <div id="modal" class="modal" role="dialog" aria-modal="true">
     <div class="modalInner">
       <h2 id="memoryTitle"></h2>
-
       <div id="idRow" class="muted"></div>
-
       <div class="formRow">
         <label for="editType">Categoría</label>
         <select id="editType">
@@ -131,21 +99,16 @@
           <option value="camera">Genérico 📸</option>
         </select>
       </div>
-
       <div class="formRow">
         <label for="editTitle">Título</label>
         <input type="text" id="editTitle" />
       </div>
-
       <div class="formRow">
         <label for="editText">Descripción</label>
         <textarea id="editText" rows="3"></textarea>
       </div>
-
       <div class="modalActions">
-        <div>
-          <button class="danger" id="deleteBtn">Eliminar</button>
-        </div>
+        <div><button class="danger" id="deleteBtn">Eliminar</button></div>
         <div>
           <button class="secondary" onclick="closeModal()">Cerrar</button>
           <button class="primary" id="saveBtn">Guardar</button>
@@ -159,19 +122,18 @@
     const CONFIG = {
       SHOW_GRID: false,
       SHOW_GRID_DURING_ANIM: false,
-      SHOW_POIS: true,            // POIs del camino + rombitos junto a iconos
+      SHOW_POIS: true,
       CRISP_ALIGN: true,
       ANIM_DURATION_MS: 900
     };
 
     // ========= Pixel-art / Tiles =========
-    const TILE_SRC_PX = 16;   // tamaño real del tile en el PNG
-    const TILE_SCALE  = 3;    // escala entera para mantener nitidez (3 -> 48px)
-    const tileSize    = TILE_SRC_PX * TILE_SCALE; // 48
+    const TILE_SRC_PX = 16;
+    const TILE_SCALE  = 3;                 // 16*3 = 48px por celda
+    const tileSize    = TILE_SRC_PX * TILE_SCALE;
 
     // ========= Utils =========
     const clamp = (v,min,max)=>Math.max(min,Math.min(max,v));
-    const lerp = (a,b,t)=>a+(b-a)*t;
     const easeInOut = t => (t<.5) ? 2*t*t : 1 - Math.pow(-2*t+2,2)/2;
 
     // PRNG determinista
@@ -181,23 +143,21 @@
     function randSignSeeded(seed, salt){ return seeded(seed, salt)<0.5 ? -1 : 1; }
 
     // ========= Mapa / Estado =========
-    let gridW = 10;
-    let gridH = 12;
+    let gridW = 10, gridH = 12;
     const houseCol = 0, houseRow = 0;
     const minX = 1, maxX = gridW - 2;
 
     // Semilla y datos
     let seed = Number(localStorage.getItem("pixelLifeSeed"));
     if (!seed) { seed = (Date.now() ^ Math.floor(Math.random() * 1e9)) >>> 0; localStorage.setItem("pixelLifeSeed", String(seed)); }
-    // Recuerdos: { title, text, type, createdAt }
-    let memories = JSON.parse(localStorage.getItem("memories") || "[]");
+    let memories = JSON.parse(localStorage.getItem("memories") || "[]"); // {title,text,type,createdAt}
 
     // ========= Canvas =========
     const canvas = document.getElementById("map");
     const ctx = canvas.getContext("2d");
     function setupCrispCanvas() {
       const dpr = window.devicePixelRatio || 1;
-      const logicalW = gridW * tileSize;  // ajusta al tileSize nuevo
+      const logicalW = gridW * tileSize;
       const logicalH = gridH * tileSize;
       canvas.style.width = logicalW + "px";
       canvas.style.height = logicalH + "px";
@@ -220,7 +180,6 @@
     };
     const sprites = {};
     let loaded = 0, needed = Object.keys(spriteUrls).length;
-
     function loadImage(target, key, url){
       const img = new Image();
       img.onload = () => { loaded++; if (loaded === needed && tilesetReady()) { ensureCapacity(); drawMap(); } };
@@ -229,55 +188,46 @@
     }
     for (const [k,u] of Object.entries(spriteUrls)) loadImage(sprites, k, u);
 
-    // ========= Tileset =========
-    const tilesetUrl = "./assets/tiles/tileset_pixel_life.png"; // coloca aquí el PNG
+    // ========= Tileset (terreno) =========
+    const tilesetUrl = "./assets/tiles/tileset_pixel_life.png";
     let tilesetImg = new Image();
     let tilesetLoaded = false;
     tilesetImg.onload = () => { tilesetLoaded = true; if (loaded === needed) { ensureCapacity(); drawMap(); } };
     tilesetImg.onerror = () => { console.warn("No se cargó tileset:", tilesetUrl); tilesetLoaded = false; if (loaded === needed) { ensureCapacity(); drawMap(); } };
     tilesetImg.src = tilesetUrl;
-
     function tilesetReady(){ return tilesetLoaded; }
 
     function blitTile(tileIndex, dx, dy) {
-      if (!tilesetReady()) return; // si no cargó, no dibuja (fallback es el bg del canvas)
-      const sx = tileIndex * TILE_SRC_PX;
-      const sy = 0;
+      if (!tilesetReady()) return;
+      const sx = tileIndex * TILE_SRC_PX, sy = 0;
       const sw = TILE_SRC_PX, sh = TILE_SRC_PX;
-      const dw = tileSize, dh = tileSize;
+      const dw = tileSize,   dh = tileSize;
       const px = CONFIG.CRISP_ALIGN ? Math.round(dx) : dx;
       const py = CONFIG.CRISP_ALIGN ? Math.round(dy) : dy;
       ctx.drawImage(tilesetImg, sx, sy, sw, sh, px, py, dw, dh);
     }
 
-    // Mundo → tipo de tile por celda
+    // ========= Mundo base =========
     function tileType(x, y) {
       const r = seeded(seed, (x+1)*73856093 ^ (y+1)*19349663);
       if (r < 0.08) return 2; // agua
       if (r < 0.28) return 1; // bosque
       if (r < 0.40) return 3; // colina
-      return 0;               // llanura
+      return 0;               // llano
     }
-
     function drawTiles() {
       for (let x=0; x<gridW; x++){
         for (let y=0; y<gridH; y++){
-          const t = tileType(x,y); // 0=llanura,1=bosque,2=agua,3=colina
+          const t = tileType(x,y);
           const index = (t===0)?0 : (t===1)?1 : (t===2)?2 : (t===3)?3 : 0;
           blitTile(index, x*tileSize, y*tileSize);
         }
       }
     }
 
-    // Helpers
+    // ========= Camino por polilínea (trazo) =========
     function cellCenter(x, y) { return { x: x*tileSize + tileSize/2, y: y*tileSize + tileSize/2 }; }
-    function drawSprite(img, x, y, w, h) {
-      const dx = CONFIG.CRISP_ALIGN ? Math.round(x) : x;
-      const dy = CONFIG.CRISP_ALIGN ? Math.round(y) : y;
-      ctx.drawImage(img, dx, dy, w, h);
-    }
 
-    // Camino determinista
     function computeWaypointsAndPolyline() {
       const waypoints=[], polyline=[];
       let curX=houseCol, curY=houseRow;
@@ -289,7 +239,6 @@
         const rows=randIntSeeded(2,3,seed,1000+i);
         const lateral=randIntSeeded(1,8,seed,2000+i)*randSignSeeded(seed,3000+i);
         let targetX=clamp(curX+lateral,minX,maxX);
-
         const wiggles=Array.from({length:rows},(_,s)=>{const r=seeded(seed,(i+1)*4000+s);return r<.18?-1:(r>.82?1:0);});
         let nextX=curX;
         for(let step=1;step<=rows;step++){
@@ -305,14 +254,61 @@
       return {waypoints,polyline};
     }
 
+    function drawPath(polyline, uptoIndex = polyline.length - 1) {
+      if (polyline.length < 2) return;
+      uptoIndex = Math.max(1, Math.min(uptoIndex, polyline.length - 1));
+
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+
+      // Base tierra
+      ctx.beginPath();
+      ctx.moveTo(Math.round(polyline[0].x), Math.round(polyline[0].y));
+      for (let i = 1; i <= uptoIndex; i++) ctx.lineTo(Math.round(polyline[i].x), Math.round(polyline[i].y));
+      ctx.strokeStyle = "#c2b280";
+      ctx.lineWidth = 22;
+      ctx.stroke();
+
+      // Luz/relieve superior
+      ctx.beginPath();
+      ctx.moveTo(Math.round(polyline[0].x), Math.round(polyline[0].y));
+      for (let i = 1; i <= uptoIndex; i++) ctx.lineTo(Math.round(polyline[i].x), Math.round(polyline[i].y));
+      ctx.strokeStyle = "#e8d7a5";
+      ctx.lineWidth = 10;
+      ctx.stroke();
+
+      // POIs del camino (detalle)
+      if (CONFIG.SHOW_POIS) {
+        ctx.fillStyle = "#f0e3b5";
+        for (let i = 1; i <= uptoIndex; i++) {
+          if (i % 3 === 0) {
+            ctx.beginPath();
+            ctx.arc(Math.round(polyline[i].x), Math.round(polyline[i].y), 3, 0, Math.PI*2);
+            ctx.fill();
+          }
+        }
+      }
+    }
+
+    // ========= Dibujo principal =========
     function ensureCapacity(){
       const {waypoints}=computeWaypointsAndPolyline();
       const lastY=waypoints.length?waypoints[waypoints.length-1].y:0;
       gridH=Math.max(12,lastY+4);
       setupCrispCanvas();
     }
-
-    // POIs
+    function drawHouseAndAvatars(){
+      drawSprite(sprites.house,0,0,tileSize,tileSize);
+      if(gridW>=3){
+        drawSprite(sprites.juan,  1*tileSize,0,tileSize,tileSize);
+        drawSprite(sprites.paula, 2*tileSize,0,tileSize,tileSize);
+      }
+    }
+    function drawSprite(img, x, y, w, h) {
+      const dx = CONFIG.CRISP_ALIGN ? Math.round(x) : x;
+      const dy = CONFIG.CRISP_ALIGN ? Math.round(y) : y;
+      ctx.drawImage(img, dx, dy, w, h);
+    }
     function drawPOIAtCell(cellX, cellY, type) {
       if (!CONFIG.SHOW_POIS) return;
       ctx.save();
@@ -329,73 +325,48 @@
       ctx.fillRect(-4,-4,8,8);
       ctx.restore();
     }
-
-    function drawPath(polyline, uptoIndex = polyline.length - 1) {
-      if (polyline.length < 2) return;
-      uptoIndex = Math.max(1, Math.min(uptoIndex, polyline.length - 1));
-
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
-
-      // Base
-      ctx.beginPath();
-      ctx.moveTo(Math.round(polyline[0].x), Math.round(polyline[0].y));
-      for (let i = 1; i <= uptoIndex; i++) ctx.lineTo(Math.round(polyline[i].x), Math.round(polyline[i].y));
-      ctx.strokeStyle = "#c2b280";
-      ctx.lineWidth = 22;
-      ctx.stroke();
-
-      // Luz superior
-      ctx.beginPath();
-      ctx.moveTo(Math.round(polyline[0].x), Math.round(polyline[0].y));
-      for (let i = 1; i <= uptoIndex; i++) ctx.lineTo(Math.round(polyline[i].x), Math.round(polyline[i].y));
-      ctx.strokeStyle = "#e8d7a5";
-      ctx.lineWidth = 10;
-      ctx.stroke();
-
-      // POIs del camino (cada 3 puntos de la polilínea)
-      if (CONFIG.SHOW_POIS) {
-        ctx.fillStyle = "#f0e3b5";
-        for (let i = 1; i <= uptoIndex; i++) {
-          if (i % 3 === 0) {
-            ctx.beginPath();
-            ctx.arc(Math.round(polyline[i].x), Math.round(polyline[i].y), 3, 0, Math.PI*2);
-            ctx.fill();
-          }
-        }
-      }
-    }
-
-    function drawHouseAndAvatars(){
-      drawSprite(sprites.house,0,0,tileSize,tileSize);
-      if(gridW>=3){
-        drawSprite(sprites.juan,  1*tileSize,0,tileSize,tileSize);
-        drawSprite(sprites.paula, 2*tileSize,0,tileSize,tileSize);
-      }
-    }
-
     function drawIcons(waypoints, uptoIdx = waypoints.length - 1){
       for (let k = 0; k <= uptoIdx && k < waypoints.length; k++) {
         const w = waypoints[k];
         const m = memories[w.idx];
         const icon = sprites[m.type] ?? sprites.camera;
-        // Icono del recuerdo
         drawSprite(icon, w.x*tileSize + 8, w.y*tileSize + 8, Math.round(tileSize*0.73), Math.round(tileSize*0.73));
-        // POI pequeño junto al icono
         drawPOIAtCell(w.x, w.y, m.type);
       }
     }
-
     function drawMap(){
       const {waypoints,polyline}=computeWaypointsAndPolyline();
       ctx.clearRect(0,0,canvas.width,canvas.height);
-      drawTiles();                 // ahora pinta tiles del PNG
+      drawTiles();
       drawPath(polyline);
       drawHouseAndAvatars();
       drawIcons(waypoints);
     }
 
-    // Contar waypoints alcanzados hasta un índice de polilínea
+    // ========= Autoenfoque (scroll suave al nuevo recuerdo) =========
+    function focusLastWaypointIfBelowView() {
+      const { waypoints } = computeWaypointsAndPolyline();
+      if (waypoints.length === 0) return;
+
+      const last = waypoints[waypoints.length - 1];
+      const center = cellCenter(last.x, last.y);
+
+      // Posición del canvas en la página
+      const canvasTopPage = canvas.getBoundingClientRect().top + window.scrollY;
+      const waypointYInPage = canvasTopPage + center.y;
+
+      const viewTop = window.scrollY;
+      const viewBottom = viewTop + window.innerHeight;
+
+      // Si está por debajo del viewport (con margen), hacemos scroll para centrarlo
+      const margin = tileSize * 1.5;
+      if (waypointYInPage > viewBottom - margin) {
+        const targetY = Math.max(0, Math.round(waypointYInPage - window.innerHeight / 2));
+        window.scrollTo({ top: targetY, behavior: 'smooth' });
+      }
+    }
+
+    // ========= Animación al añadir =========
     function countWaypointsVisible(polyline, uptoIdx) {
       const { waypoints } = computeWaypointsAndPolyline();
       let visible = -1;
@@ -409,8 +380,6 @@
       }
       return visible;
     }
-
-    // ========= Animación al añadir =========
     function animateLastSegment() {
       const { waypoints, polyline } = computeWaypointsAndPolyline();
       if (waypoints.length === 0) { drawMap(); return; }
@@ -435,18 +404,15 @@
         drawPath(polyline, progressIdx);
         drawHouseAndAvatars();
 
-        // Iconos ya “alcanzados”
         const uptoWp = countWaypointsVisible(polyline, progressIdx);
         drawIcons(waypoints, uptoWp);
 
-        // Personajito suave
+        // avatar viajero (opcional)
         const a = polyline[progressIdx];
-        const px = a.x, py = a.y;
         if (sprites.juan && sprites.juan.width) {
-          ctx.drawImage(sprites.juan, px-16, py-16, 32, 32);
+          ctx.drawImage(sprites.juan, a.x-16, a.y-16, 32, 32);
         } else {
-          ctx.fillStyle = "#fff";
-          ctx.beginPath(); ctx.arc(px, py, 5, 0, Math.PI*2); ctx.fill();
+          ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(a.x, a.y, 5, 0, Math.PI*2); ctx.fill();
         }
       }
 
@@ -463,14 +429,8 @@
     }
 
     // ========= Helpers de modal (UI) =========
-    function showModal(el){
-      el.classList.add('show');
-      document.body.classList.add('no-scroll');
-    }
-    function hideModal(el){
-      el.classList.remove('show');
-      document.body.classList.remove('no-scroll');
-    }
+    function showModal(el){ el.classList.add('show'); document.body.classList.add('no-scroll'); }
+    function hideModal(el){ el.classList.remove('show'); document.body.classList.remove('no-scroll'); }
 
     // ===== Alta (modal Añadir) =====
     const openAddModalBtn=document.getElementById("openAddModal");
@@ -495,10 +455,16 @@
     saveAdd.addEventListener("click",()=>{
       const title=addTitle.value.trim(), text=addText.value.trim(), type=addType.value;
       if(!title||!text) return alert("Completa todos los campos.");
+
+      // Guardar
       memories.push({title,text,type,createdAt:new Date().toISOString()});
       localStorage.setItem("memories",JSON.stringify(memories));
+
+      // Asegurar tamaño, autoenfoque y animación
       ensureCapacity();
+      focusLastWaypointIfBelowView();
       animateLastSegment();
+
       hideModal(addModal);
     });
 
@@ -547,7 +513,7 @@
       currentIdx=null;closeModal();ensureCapacity();drawMap();
     });
 
-    // Cerrar al hacer click en el fondo (backdrop) y con ESC
+    // Cerrar con click en fondo y con ESC
     ;[addModal, modal].forEach(m => {
       m.addEventListener('click', (e) => { if (e.target === m) hideModal(m); });
     });
@@ -557,6 +523,13 @@
         if (modal.classList.contains('show')) hideModal(modal);
       }
     });
+
+    // Inicial
+    ensureCapacity();
+    drawMap();
+
+    // Redimensionado (p.ej. cambio de DPR)
+    window.addEventListener('resize', () => { ensureCapacity(); drawMap(); });
   </script>
 </body>
 </html>
