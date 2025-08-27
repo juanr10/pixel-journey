@@ -140,7 +140,8 @@
       ANIM_DURATION_MS: 900,
       ANIM_IDLE: true,
       DAY_NIGHT: true,
-      DAY_NIGHT_SECONDS: 30 // ciclo completo día->noche->día
+      DAY_NIGHT_SECONDS: 30,
+      CLOUDS: true
     };
 
     // ========= Pixel-art / Tiles =========
@@ -156,6 +157,16 @@
     function seeded(seed, salt){ const s=(seed ^ (salt*0x9E3779B9))>>>0; return mulberry32(s)(); }
     function randIntSeeded(min, max, seed, salt){ const r=seeded(seed, salt); return Math.floor(r*(max-min+1))+min; }
     function randSignSeeded(seed, salt){ return seeded(seed, salt)<0.5 ? -1 : 1; }
+
+    // Semilla a partir de texto (FNV-1a 32-bit)
+    function strToSeed(s){
+      let h = 0x811c9dc5;
+      for (let i = 0; i < s.length; i++){
+        h ^= s.charCodeAt(i);
+        h = Math.imul(h, 0x01000193);
+      }
+      return h >>> 0;
+    }
 
     // ========= Mapa / Estado =========
     let gridW = 10, gridH = 12;
@@ -178,10 +189,10 @@
       canvas.width  = Math.round(logicalW * dpr);
       canvas.height = Math.round(logicalH * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.imageSmoothingEnabled = false;
+      ctx.imageSmoothingEnabled = false; // default pixel-art
     }
 
-    // ========= Sprites =========
+    // ========= Sprites (memories & avatars) =========
     const spriteUrls = {
       house: "./assets/sprites/memories/house.png",
       juan: "./assets/sprites/memories/juan.png",
@@ -299,50 +310,37 @@
     });
 
     function getDayNightPhase(tSec){
-      // Fase 0..1 (0 = mediodía claro, 0.5 = medianoche, 1 = mediodía)
       const T = CONFIG.DAY_NIGHT_SECONDS;
-      const phi = (tSec % T) / T; // 0..1
-      // seno doblado para tener noche centrada en 0.5
-      const nightness = 0.5 - 0.5 * Math.cos(2*Math.PI*phi); // 0..1
-      return nightness;
+      const phi = (tSec % T) / T;
+      return 0.5 - 0.5 * Math.cos(2*Math.PI*phi); // 0..1
     }
 
     function drawNightOverlay(tSec){
       if (!CONFIG.DAY_NIGHT) return;
-      const nightness = getDayNightPhase(tSec); // 0..1
-
-      // Ligerísimo tinte al atardecer/amanecer, más fuerte de noche
-      const maxAlpha = 0.55; // cuán oscura la noche
+      const nightness = getDayNightPhase(tSec);
+      const maxAlpha = 0.55;
       const alpha = nightness * maxAlpha;
 
-      // Overlay azulado
       ctx.save();
       ctx.globalAlpha = alpha;
-      ctx.fillStyle = "#0b1b3a"; // azul noche
+      ctx.fillStyle = "#0b1b3a";
       ctx.fillRect(0,0,canvas.width,canvas.height);
       ctx.restore();
 
-      // Estrellas: aparecen solo cuando nightness > 0.2
       if (nightness > 0.2) {
         const starCount = Math.min(120, Math.floor((nightness-0.2)*200));
-        // PRNG seeding estable para que no parpadeen de posición, solo en brillo
         const rnd = mulberry32(0xA5F42C91);
         for (let i=0; i<starCount; i++){
           const x = Math.floor(rnd() * canvas.width);
           const y = Math.floor(rnd() * canvas.height);
-          // brillo pulsante
-          const tw = (Math.sin(tSec*3 + i*0.37) + 1)/2; // 0..1
-          const a  = 0.25 + tw*0.55; // 0.25..0.8
+          const tw = (Math.sin(tSec*3 + i*0.37) + 1)/2;
+          const a  = 0.25 + tw*0.55;
           ctx.save();
           ctx.globalAlpha = a * (0.4 + 0.6*nightness);
           ctx.fillStyle = "#fff8c4";
-          // pixel-star 1x1 o cruz 3x3 según “suerte”
           if (rnd() < 0.2) {
-            // cruz pequeña (simula destello)
-            ctx.fillRect(x-1,y,1,1);
-            ctx.fillRect(x+1,y,1,1);
-            ctx.fillRect(x,y-1,1,1);
-            ctx.fillRect(x,y+1,1,1);
+            ctx.fillRect(x-1,y,1,1); ctx.fillRect(x+1,y,1,1);
+            ctx.fillRect(x,y-1,1,1); ctx.fillRect(x,y+1,1,1);
             ctx.fillRect(x,y,1,1);
           } else {
             ctx.fillRect(x,y,1,1);
@@ -352,35 +350,154 @@
       }
     }
 
-    // ========= Dibujo principal + animación idle =========
-    function ensureCapacity(){
-      const {waypoints}=computeWaypointsAndPolyline();
-      const lastY=waypoints.length?waypoints[waypoints.length-1].y:0;
-      gridH=Math.max(12,lastY+4);
-      setupCrispCanvas();
-    }
+    // ========= Nubes (parallax, bordes redondos, encima de todo) =========
+    const Clouds = {
+      layers: [],
+      ready: false,
+      spriteSmall: null,
+      spriteBig: null,
+      scrollY: 0 // parallax vertical con scroll
+    };
 
-    function drawTiles() {
-      for (let x=0; x<gridW; x++){
-        for (let y=0; y<gridH; y++){
-          const t = tileType(x,y);
-          const index = (t===0)?0 : (t===1)?1 : (t===2)?2 : (t===3)?3 : 0;
-          blitTile(index, x*tileSize, y*tileSize);
-          if (t===0) sprinkleGrass(x,y);
-        }
+    // Nubes orgánicas: lóbulos arriba/abajo + render hi-res => bordes 100% redondos
+    function makeCloudSprite(width, height, seedVal){
+      const hiResScale = 3; // pintar 3x y reducir
+      const offHR = document.createElement('canvas');
+      offHR.width  = width  * hiResScale;
+      offHR.height = height * hiResScale;
+      const cx = offHR.getContext('2d');
+      cx.imageSmoothingEnabled = true;
+
+      const rnd = mulberry32(seedVal >>> 0);
+
+      cx.fillStyle = "#ffffff";
+      const lobes = 4 + Math.floor(rnd()*3); // 4..6
+      const baseY = Math.floor(offHR.height*0.55);
+      let centerX = Math.floor(offHR.width*0.2 + rnd()*offHR.width*0.2);
+
+      // Lóbulos superiores
+      for (let i=0;i<lobes;i++){
+        const r  = Math.floor(offHR.height*(0.12 + rnd()*0.18));
+        const cy = baseY - Math.floor(rnd()*offHR.height*0.18);
+        cx.beginPath();
+        cx.arc(centerX, cy, r, 0, Math.PI*2);
+        cx.fill();
+        centerX += Math.floor(r*0.95);
       }
+
+      // Lóbulos inferiores (redondean totalmente la panza)
+      for (let i=0;i<Math.floor(lobes/2)+2;i++){
+        const r = Math.floor(offHR.height*(0.10 + rnd()*0.15));
+        const cxPos = 8 + Math.floor(rnd() * (offHR.width-16));
+        const cyPos = baseY + Math.floor(rnd() * (offHR.height*0.25));
+        cx.beginPath();
+        cx.arc(cxPos, cyPos, r, 0, Math.PI*2);
+        cx.fill();
+      }
+
+      // Sombreado inferior sutil (opcional, sin bordes duros)
+      const grad = cx.createLinearGradient(0, baseY, 0, offHR.height);
+      grad.addColorStop(0.0, "rgba(234,234,234,0.0)");
+      grad.addColorStop(1.0, "rgba(234,234,234,0.9)");
+      cx.globalCompositeOperation = "source-atop";
+      cx.fillStyle = grad;
+      cx.fillRect(0, baseY, offHR.width, offHR.height - baseY);
+      cx.globalCompositeOperation = "source-over";
+
+      // Reducir a tamaño final con smoothing para contorno redondo
+      const off = document.createElement('canvas');
+      off.width = width; off.height = height;
+      const c2 = off.getContext('2d');
+      c2.imageSmoothingEnabled = true;
+      c2.drawImage(offHR, 0, 0, off.width, off.height);
+      return off;
     }
 
-    function drawSprite(img, x, y, w, h) {
-      const dx = CONFIG.CRISP_ALIGN ? Math.round(x) : x;
-      const dy = CONFIG.CRISP_ALIGN ? Math.round(y) : y;
-      ctx.drawImage(img, dx, dy, w, h);
+    function initClouds(){
+      if (!CONFIG.CLOUDS) return;
+      Clouds.spriteSmall = makeCloudSprite(36, 18, strToSeed('CLOUDS_SMALL'));
+      Clouds.spriteBig   = makeCloudSprite(60, 28, strToSeed('CLOUDS_BIG'));
+
+      const w = canvas.width, h = canvas.height;
+      const far = [];
+      for (let i=0;i<6;i++){
+        far.push({
+          x: Math.floor(Math.random() * w),
+          y: 20 + i*Math.floor(h/10) + Math.floor(Math.random()*8),
+          speed: 8,    // px/s
+          scale: 3,
+          sprite: (i%2===0) ? Clouds.spriteSmall : Clouds.spriteBig,
+          vyFactor: 0.04
+        });
+      }
+      const near = [];
+      for (let i=0;i<5;i++){
+        near.push({
+          x: Math.floor(Math.random() * w),
+          y: 40 + i*Math.floor(h/9) + Math.floor(Math.random()*12),
+          speed: 18,   // px/s
+          scale: 3,
+          sprite: (i%2===0) ? Clouds.spriteBig : Clouds.spriteSmall,
+          vyFactor: 0.08
+        });
+      }
+      Clouds.layers = [far, near];
+      Clouds.ready = true;
     }
 
+    function updateClouds(dt){
+      if (!CONFIG.CLOUDS || !Clouds.ready) return;
+      const w = canvas.width;
+      Clouds.layers.forEach(layer => {
+        layer.forEach(c => {
+          c.x += c.speed * dt;
+          const sw = c.sprite.width  * c.scale;
+          if (c.x - sw > w) c.x = -sw;
+        });
+      });
+    }
+
+    // Dibujar nubes (encima de todo) con smoothing activado temporalmente
+    function drawClouds(tSec){
+      if (!CONFIG.CLOUDS || !Clouds.ready) return;
+      const nightness = CONFIG.DAY_NIGHT ? getDayNightPhase(tSec) : 0;
+      const dayAlpha = clamp(1 - nightness*1.6, 0, 1);
+
+      const prevSmooth = ctx.imageSmoothingEnabled;
+      ctx.imageSmoothingEnabled = true; // suavizar al escalar la nube
+
+      ctx.save();
+      ctx.globalAlpha = dayAlpha * 0.6; // vaporosas
+      Clouds.layers.forEach(layer => {
+        layer.forEach(c => {
+          const dw = c.sprite.width  * c.scale;
+          const dh = c.sprite.height * c.scale;
+          const parallaxY = Clouds.scrollY * c.vyFactor;
+          const dx = CONFIG.CRISP_ALIGN ? Math.round(c.x) : c.x;
+          const dy = CONFIG.CRISP_ALIGN ? Math.round(c.y + parallaxY) : (c.y + parallaxY);
+          ctx.drawImage(c.sprite, dx, dy, dw, dh);
+        });
+      });
+      ctx.restore();
+
+      ctx.imageSmoothingEnabled = prevSmooth; // volver a pixel-art
+    }
+
+    // Parallax vertical con scroll (throttle simple)
+    let lastScrollSent = 0;
+    window.addEventListener('scroll', () => {
+      const now = performance.now();
+      if (now - lastScrollSent > 16) {
+        Clouds.scrollY = window.scrollY;
+        lastScrollSent = now;
+      }
+    });
+
+    // ========= POIs / Avatares / Iconos =========
     function drawPOIAtCell(cellX, cellY, type, tSec=0) {
       if (!CONFIG.SHOW_POIS) return;
-      const cx = cellX*tileSize + tileSize*0.78;
-      const cy = cellY*tileSize + tileSize*0.22;
+      const cxp = cellX*tileSize + tileSize*0.78;
+      const cyp = cellY*tileSize + tileSize*0.22;
 
       const pulse = (Math.sin(tSec*3 + (cellX*7 + cellY*11)*0.2) + 1) / 2;
       const haloR = 7 + Math.round(3*pulse);
@@ -390,12 +507,12 @@
       ctx.globalAlpha = haloA;
       ctx.fillStyle = "#fff8c4";
       ctx.beginPath();
-      ctx.arc(Math.round(cx), Math.round(cy), haloR, 0, Math.PI*2);
+      ctx.arc(Math.round(cxp), Math.round(cyp), haloR, 0, Math.PI*2);
       ctx.fill();
       ctx.restore();
 
       ctx.save();
-      ctx.translate(cx, cy);
+      ctx.translate(cxp, cyp);
       ctx.rotate(Math.PI/4);
       const c = ({
         travel:  "#ffd27a",
@@ -407,6 +524,12 @@
       ctx.fillStyle = c;
       ctx.fillRect(-4,-4,8,8);
       ctx.restore();
+    }
+
+    function drawSprite(img, x, y, w, h) {
+      const dx = CONFIG.CRISP_ALIGN ? Math.round(x) : x;
+      const dy = CONFIG.CRISP_ALIGN ? Math.round(y) : y;
+      ctx.drawImage(img, dx, dy, w, h);
     }
 
     function drawHouseAndAvatars(tSec=0){
@@ -441,19 +564,86 @@
       }
     }
 
+    // ========= Partículas (chispas POP) =========
+    const Sparkles = { active: false, particles: [] };
+
+    function spawnSparkles(x, y, count = 18) {
+      Sparkles.particles = [];
+      const rnd = mulberry32(strToSeed('SPARKLE') ^ (seed>>>0));
+      for (let i=0;i<count;i++){
+        const ang = rnd() * Math.PI * 2;
+        const spd = 50 + rnd()*120; // px/s
+        const life = 450 + rnd()*300; // ms
+        const size = 2 + (rnd()<0.3?1:0); // 2 o 3 px
+        const huePick = rnd();
+        const color = (huePick<0.5) ? "#fff7b0" : (huePick<0.8 ? "#ffe28a" : "#ffd1f3");
+        Sparkles.particles.push({
+          x, y, vx: Math.cos(ang)*spd, vy: Math.sin(ang)*spd,
+          life, age: 0, size, color
+        });
+      }
+      Sparkles.active = true;
+    }
+
+    function updateAndDrawSparkles(dt) {
+      if (!Sparkles.active) return;
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      for (let i=Sparkles.particles.length-1; i>=0; i--){
+        const p = Sparkles.particles[i];
+        p.age += dt*1000;
+        if (p.age >= p.life) { Sparkles.particles.splice(i,1); continue; }
+        const t = p.age / p.life;
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.vy += 10 * dt; // caída leve
+        const alpha = 1 - t;
+        const s = p.size;
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = p.color;
+        ctx.fillRect(Math.round(p.x - s/2), Math.round(p.y - s/2), s, s);
+      }
+      ctx.restore();
+      if (Sparkles.particles.length === 0) Sparkles.active = false;
+    }
+
+    // ========= Dibujo principal =========
+    function ensureCapacity(){
+      const {waypoints}=computeWaypointsAndPolyline();
+      const lastY=waypoints.length?waypoints[waypoints.length-1].y:0;
+      gridH=Math.max(12,lastY+4);
+      setupCrispCanvas();
+      Clouds.ready = false;
+      initClouds();
+    }
+
+    function drawTiles() {
+      for (let x=0; x<gridW; x++){
+        for (let y=0; y<gridH; y++){
+          const t = tileType(x,y);
+          const index = (t===0)?0 : (t===1)?1 : (t===2)?2 : (t===3)?3 : 0;
+          blitTile(index, x*tileSize, y*tileSize);
+          if (t===0) sprinkleGrass(x,y);
+        }
+      }
+    }
+
+    // NOTA: nubes se dibujan al final "encima de todo"
     function drawStatic(tSec=0){
       const {waypoints,polyline}=computeWaypointsAndPolyline();
       ctx.clearRect(0,0,canvas.width,canvas.height);
       drawTiles();
       drawPath(polyline);
-      drawNightOverlay(tSec); // overlay por encima del mundo/base
+      drawNightOverlay(tSec); // overlay nocturno bajo nubes
       return {waypoints, polyline};
     }
 
-    function drawIdleFrame(tSec){
+    function drawIdleFrame(tSec, dt=0){
       const {waypoints} = computeWaypointsAndPolyline();
       drawHouseAndAvatars(tSec);
       drawIcons(waypoints, waypoints.length - 1, tSec);
+      updateAndDrawSparkles(dt);
+      drawClouds(tSec); // nubes por encima de todo
     }
 
     function drawMap(tSec=0){
@@ -461,6 +651,7 @@
       drawHouseAndAvatars(tSec);
       const {waypoints} = computeWaypointsAndPolyline();
       drawIcons(waypoints, waypoints.length - 1, tSec);
+      drawClouds(tSec); // nubes por encima
     }
 
     // ========= Autoenfoque =========
@@ -480,7 +671,7 @@
       }
     }
 
-    // ========= Animación al añadir (con POP) =========
+    // ========= Animación al añadir (POP + camino + chispas) =========
     function countWaypointsVisible(polyline, uptoIdx) {
       const { waypoints } = computeWaypointsAndPolyline();
       let visible = -1;
@@ -511,18 +702,19 @@
       const totalEnd = polyline.length - 1;
       const DURATION = CONFIG.ANIM_DURATION_MS;
       let start = null;
+      let sparkSpawned = false;
 
-      function render(progressIdx, tSec) {
+      function render(progressIdx, tSec, dt) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         drawTiles();
         drawPath(polyline, progressIdx);
         drawNightOverlay(tSec);
 
-        drawHouseAndAvatars(tSec);
-
         const visibleWp = countWaypointsVisible(polyline, progressIdx);
         const wps = computeWaypointsAndPolyline().waypoints;
         const baseSize = Math.round(tileSize*0.73);
+
+        drawHouseAndAvatars(tSec);
 
         for (let k=0; k <= visibleWp; k++){
           const w = wps[k];
@@ -538,32 +730,46 @@
             const prog = (progressIdx - (prevEnd)) / Math.max(1, (totalEnd - prevEnd));
             const popPhase = clamp((prog - 0.7) / 0.3, 0, 1);
             scale = 0.9 + 0.1 * easeInOut(popPhase);
+            if (!sparkSpawned && popPhase > 0.05) {
+              sparkSpawned = true;
+              spawnSparkles(cx, cy, 20);
+            }
           }
           drawIconScaled(icon, cx, cy, baseSize, scale);
           drawPOIAtCell(w.x, w.y, m.type, tSec);
         }
 
+        // avatar viajero opcional
         const a = polyline[progressIdx];
         if (sprites.juan && sprites.juan.width) {
           ctx.drawImage(sprites.juan, Math.round(a.x-16), Math.round(a.y-16), 32, 32);
         } else {
           ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(Math.round(a.x), Math.round(a.y), 5, 0, Math.PI*2); ctx.fill();
         }
+
+        updateAndDrawSparkles(dt);
+        drawClouds(tSec); // nubes por encima
       }
 
+      let lastTs = null;
       function step(ts) {
         if (!start) start = ts;
+        if (!lastTs) lastTs = ts;
+        const dt = (ts - lastTs)/1000; lastTs = ts;
+
+        updateClouds(dt);
+
         const t = Math.min(1, (ts - start) / DURATION);
         const eased = easeInOut(t);
         const idx = Math.max(prevEnd, Math.min(totalEnd, Math.floor(prevEnd + eased * (totalEnd - prevEnd))));
-        render(idx, ts/1000);
+        render(idx, ts/1000, dt);
         if (t < 1) requestAnimationFrame(step);
         else drawMap(ts/1000);
       }
       requestAnimationFrame(step);
     }
 
-    // ========= UI Modales, etc. =========
+    // ========= UI Modales =========
     function showModal(el){ el.classList.add('show'); document.body.classList.add('no-scroll'); }
     function hideModal(el){ el.classList.remove('show'); document.body.classList.remove('no-scroll'); }
     function closeModal(){ hideModal(modal); }
@@ -674,11 +880,16 @@
 
     // ========= Idle loop =========
     let idleRAF = null;
+    let lastIdleTs = null;
     function idleFrame(ts){
       if (!CONFIG.ANIM_IDLE) return;
       const tSec = ts/1000;
+      if (!lastIdleTs) lastIdleTs = ts;
+      const dt = (ts - lastIdleTs)/1000; lastIdleTs = ts;
+
+      updateClouds(dt);
       drawStatic(tSec);
-      drawIdleFrame(tSec);
+      drawIdleFrame(tSec, dt);
       idleRAF = requestAnimationFrame(idleFrame);
     }
     function startIdleLoop(){
@@ -691,6 +902,7 @@
     // Inicial
     ensureCapacity();
     rebuildStatic();
+    initClouds();
     startIdleLoop();
 
     window.addEventListener('resize', () => { ensureCapacity(); rebuildStatic(); });
