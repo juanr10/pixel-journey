@@ -53,7 +53,6 @@ function makeCloudSprite(width, height, seedVal) {
   cx.fillRect(0, baseY, offHR.width, offHR.height - baseY);
   cx.globalCompositeOperation = "source-over";
 
-  // reducir suavizando
   const off = document.createElement("canvas");
   off.width = width;
   off.height = height;
@@ -110,7 +109,7 @@ export function updateClouds(dt, canvas) {
 
 export function drawClouds(ctx, tSec) {
   if (!CONFIG.CLOUDS || !Clouds.ready) return;
-  const nightness = CONFIG.DAY_NIGHT ? getDayNightPhase(tSec) : 0;
+  const nightness = CONFIG.IS_NIGHT ? 1 : 0;
   const dayAlpha = clamp(1 - nightness * 1.6, 0, 1);
 
   const prevSmooth = ctx.imageSmoothingEnabled;
@@ -142,11 +141,4 @@ export function bindScrollParallax() {
       lastScrollSent = now;
     }
   });
-}
-
-// reutilizamos el cálculo de fase desde aquí para nubes
-export function getDayNightPhase(tSec) {
-  const T = CONFIG.DAY_NIGHT_SECONDS;
-  const phi = (tSec % T) / T;
-  return 0.5 - 0.5 * Math.cos(2 * Math.PI * phi); // 0..1
 }

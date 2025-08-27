@@ -1,3 +1,13 @@
+export const NIGHT_STORAGE_KEY = "pixelLifeNight";
+
+const storedNight = (() => {
+  try {
+    return localStorage.getItem(NIGHT_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+})();
+
 export const CONFIG = {
   SHOW_GRID: false,
   SHOW_GRID_DURING_ANIM: false,
@@ -5,8 +15,10 @@ export const CONFIG = {
   CRISP_ALIGN: true,
   ANIM_DURATION_MS: 900,
   ANIM_IDLE: true,
-  DAY_NIGHT: true,
-  DAY_NIGHT_SECONDS: 30,
+
+  // Modo noche MANUAL (persistente)
+  IS_NIGHT: storedNight ? storedNight === "1" : false,
+
   CLOUDS: true,
 };
 

@@ -2,23 +2,28 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>Pixel Life</title>
+  <title>Pixel Journey</title>
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
   <header>
-    <h1>Pixel Life</h1>
-    <div class="controls">
-      <label class="switch">
-        <input type="checkbox" id="toggleDayNight" checked>
-        Ciclo día/noche
+    <h1>Pixel Journey</h1>
+
+    <!-- Barra de controles bajo el título -->
+    <div class="controlBar">
+      <label class="nightSwitch" id="nightSwitchLabel" aria-label="Cambiar modo noche">
+        <input type="checkbox" id="toggleNight" aria-label="Modo noche">
+        <span class="icon sun" aria-hidden="true">☀️</span>
+        <span class="track" aria-hidden="true"></span>
+        <span class="icon moon" aria-hidden="true">🌙</span>
       </label>
+
       <button id="openAddModal" class="primary">+ Añadir recuerdo</button>
     </div>
   </header>
 
-  <canvas id="map" width="480" height="576" aria-label="Mapa de recuerdos"></canvas>
+  <canvas id="map" width="480" height="576" aria-label="Mapa de recuerdos - Pixel Journey"></canvas>
 
   <!-- Modal Añadir -->
   <div id="addModal" class="modal" role="dialog" aria-modal="true">

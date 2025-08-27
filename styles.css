@@ -1,48 +1,240 @@
-:root { color-scheme: light dark; }
+:root {
+  color-scheme: light dark;
+}
+
 body {
-  background:#222; color:#fff; font-family: system-ui, sans-serif;
-  display:flex; flex-direction:column; align-items:center; margin:0; padding:20px;
+  background: #222;
+  color: #fff;
+  font-family: system-ui, sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0;
+  padding: 20px;
 }
+
 header {
-  width:100%; max-width:640px; display:flex; align-items:center; justify-content:space-between;
-  gap:12px; margin-bottom:16px;
+  width: 100%;
+  max-width: 640px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* centrado horizontal */
+  gap: 20px;
+  /* más separación interna en header */
+  margin-bottom: 20px;
+  /* más espacio hacia el canvas */
 }
+
 h1 {
-  font-family:'Press Start 2P', cursive;
-  font-size:28px; margin:0;
-  color:#ffcc00; text-shadow:3px 3px 0 #000, 6px 6px 0 #d62828;
-  letter-spacing:1px;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 28px;
+  margin: 0;
+  color: #ffcc00;
+  text-shadow: 3px 3px 0 #000, 6px 6px 0 #d62828;
+  letter-spacing: 1px;
+  text-align: center;
+  margin-bottom: 12px;
+  /* separa título de los botones */
 }
-.controls { display:flex; align-items:center; gap:12px; }
-.switch { display:flex; align-items:center; gap:6px; font-size:12px; opacity:.9; }
-.switch input { transform: scale(1.1); }
 
-button { padding:10px 16px; border-radius:8px; border:none; font-weight:700; cursor:pointer; }
-button.primary { background:#00c775; color:#111; }
-button.secondary { background:#e9e9e9; color:#222; }
-button.danger { background:#ff5c5c; color:#111; }
-button:hover { filter:brightness(1.05); }
-canvas { background:#4caf50; margin-top:16px; border-radius:8px; cursor:pointer; }
+/* Barra de controles: centrada, con wrap en móvil */
+.controlBar {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* centrado */
+  gap: 16px;
+  /* más espacio entre switch y botón */
+  flex-wrap: wrap;
+}
 
-body.no-scroll { overflow:hidden; }
+.controlBar>button {
+  min-width: 210px;
+}
+
+/* opcional: botón con ancho cómodo */
+
+@media (max-width: 520px) {
+  .controlBar {
+    gap: 10px;
+  }
+
+  .controlBar>button {
+    width: 100%;
+  }
+}
+
+/* Switch noche manual ☀️ 🌙 */
+.nightSwitch {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  user-select: none;
+  cursor: pointer;
+  --track-w: 76px;
+  --track-h: 34px;
+  --knob: 28px;
+}
+
+.nightSwitch input {
+  display: none;
+}
+
+.nightSwitch .icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.nightSwitch .track {
+  position: relative;
+  width: var(--track-w);
+  height: var(--track-h);
+  background: #333;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .12);
+  transition: background .18s ease;
+}
+
+.nightSwitch .track::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: var(--knob);
+  height: var(--knob);
+  background: #ffd54f;
+  border-radius: 50%;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .35);
+  transition: transform .18s ease, background .18s ease;
+}
+
+.nightSwitch input:checked+.icon.sun~.track {
+  background: #1b2748;
+}
+
+.nightSwitch input:checked+.icon.sun~.track::after {
+  transform: translateX(calc(var(--track-w) - var(--knob) - 6px));
+  background: #c5cae9;
+}
+
+/* Botones y canvas */
+button {
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: none;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+button.primary {
+  background: #00c775;
+  color: #111;
+}
+
+button.secondary {
+  background: #e9e9e9;
+  color: #222;
+}
+
+button.danger {
+  background: #ff5c5c;
+  color: #111;
+}
+
+button:hover {
+  filter: brightness(1.05);
+}
+
+canvas {
+  background: #4caf50;
+  margin-top: 24px; 
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+body.no-scroll {
+  overflow: hidden;
+}
+
 .modal {
-  position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
-  background:rgba(0,0,0,.5); padding:20px;
-  opacity:0; visibility:hidden; pointer-events:none;
-  transition:opacity .18s ease, visibility .18s ease; z-index:15;
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, .5);
+  padding: 20px;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity .18s ease, visibility .18s ease;
+  z-index: 15;
 }
-.modal.show { opacity:1; visibility:visible; pointer-events:auto; }
+
+.modal.show {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
 .modalInner {
-  width:min(92vw,480px); background:#fff; color:#111; border-radius:12px; padding:20px;
-  box-shadow:0 10px 40px rgba(0,0,0,.4); transform:scale(.98); opacity:.95;
-  transition:transform .18s ease, opacity .18s ease;
+  width: min(92vw, 480px);
+  background: #fff;
+  color: #111;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, .4);
+  transform: scale(.98);
+  opacity: .95;
+  transition: transform .18s ease, opacity .18s ease;
 }
-.modal.show .modalInner { transform:scale(1); opacity:1; }
-.modal h2 { margin:0 0 16px; font-family:'Press Start 2P', cursive; font-size:14px; color:#333; }
-.formRow { display:flex; flex-direction:column; margin-bottom:14px; }
-.formRow label { font-size:.85rem; margin-bottom:4px; color:#444; }
-.formRow input, .formRow textarea, .formRow select {
-  padding:8px; border-radius:6px; border:1px solid #ccc; font-family:inherit;
+
+.modal.show .modalInner {
+  transform: scale(1);
+  opacity: 1;
 }
-.modalActions { display:flex; justify-content:space-between; gap:8px; margin-top:16px; }
-.muted { opacity:.8; font-size:.85rem; color:#666; margin-bottom:14px; }
+
+.modal h2 {
+  margin: 0 0 16px;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 14px;
+  color: #333;
+}
+
+.formRow {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 14px;
+}
+
+.formRow label {
+  font-size: .85rem;
+  margin-bottom: 4px;
+  color: #444;
+}
+
+.formRow input,
+.formRow textarea,
+.formRow select {
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-family: inherit;
+}
+
+.modalActions {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.muted {
+  opacity: .8;
+  font-size: .85rem;
+  color: #666;
+  margin-bottom: 14px;
+}
