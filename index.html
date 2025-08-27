@@ -343,27 +343,36 @@
       drawIcons(waypoints);
     }
 
-    // ========= Autoenfoque (scroll suave al nuevo recuerdo) =========
-    function focusLastWaypointIfBelowView() {
-      const { waypoints } = computeWaypointsAndPolyline();
-      if (waypoints.length === 0) return;
-
-      const last = waypoints[waypoints.length - 1];
-      const center = cellCenter(last.x, last.y);
-
-      // Posición del canvas en la página
+    // ========= Autoenfoque helpers =========
+    function cellCenter(x, y) { return { x: x*tileSize + tileSize/2, y: y*tileSize + tileSize/2 }; } // (duplicado intencional por legibilidad)
+    function scrollToWaypointCenter(wpCell, delayOpenMs = 350, cb = null) {
+      const center = cellCenter(wpCell.x, wpCell.y);
       const canvasTopPage = canvas.getBoundingClientRect().top + window.scrollY;
       const waypointYInPage = canvasTopPage + center.y;
 
       const viewTop = window.scrollY;
       const viewBottom = viewTop + window.innerHeight;
-
-      // Si está por debajo del viewport (con margen), hacemos scroll para centrarlo
       const margin = tileSize * 1.5;
-      if (waypointYInPage > viewBottom - margin) {
-        const targetY = Math.max(0, Math.round(waypointYInPage - window.innerHeight / 2));
-        window.scrollTo({ top: targetY, behavior: 'smooth' });
+
+      // Si ya está dentro, abrimos de inmediato
+      if (waypointYInPage > viewTop + margin && waypointYInPage < viewBottom - margin) {
+        cb && cb();
+        return;
       }
+
+      const targetY = Math.max(0, Math.round(waypointYInPage - window.innerHeight/2));
+      window.scrollTo({ top: targetY, behavior: 'smooth' });
+
+      // No existe callback del scroll suave; usamos un pequeño timeout
+      setTimeout(()=>{ cb && cb(); }, delayOpenMs);
+    }
+
+    // ========= Autoenfoque tras crear =========
+    function focusLastWaypointIfBelowView() {
+      const { waypoints } = computeWaypointsAndPolyline();
+      if (waypoints.length === 0) return;
+      const last = waypoints[waypoints.length - 1];
+      scrollToWaypointCenter(last, 10); // no necesitamos esperar para abrir modal aquí
     }
 
     // ========= Animación al añadir =========
@@ -431,6 +440,7 @@
     // ========= Helpers de modal (UI) =========
     function showModal(el){ el.classList.add('show'); document.body.classList.add('no-scroll'); }
     function hideModal(el){ el.classList.remove('show'); document.body.classList.remove('no-scroll'); }
+    function closeModal(){ hideModal(modal); }
 
     // ===== Alta (modal Añadir) =====
     const openAddModalBtn=document.getElementById("openAddModal");
@@ -456,13 +466,11 @@
       const title=addTitle.value.trim(), text=addText.value.trim(), type=addType.value;
       if(!title||!text) return alert("Completa todos los campos.");
 
-      // Guardar
       memories.push({title,text,type,createdAt:new Date().toISOString()});
       localStorage.setItem("memories",JSON.stringify(memories));
 
-      // Asegurar tamaño, autoenfoque y animación
       ensureCapacity();
-      focusLastWaypointIfBelowView();
+      focusLastWaypointIfBelowView(); // scroll suave si cae abajo
       animateLastSegment();
 
       hideModal(addModal);
@@ -483,18 +491,22 @@
       const rect=canvas.getBoundingClientRect();
       const gx=Math.floor((e.clientX-rect.left)/tileSize);
       const gy=Math.floor((e.clientY-rect.top)/tileSize);
+
       const {waypoints}=computeWaypointsAndPolyline();
       const hit=waypoints.find(w=>w.x===gx&&w.y===gy);
       if(!hit) return;
-      currentIdx=hit.idx;const m=memories[currentIdx];
-      const fallback=({mountain:"Senderismo 🏔️",travel:"Viaje ✈️",game:"Videojuego 🎮",love:"Romántico ❤️",camera:"Recuerdo 📸"})[m.type]??"Recuerdo";
-      titleEl.textContent=m.title||fallback;
-      idRow.textContent=`Índice: ${currentIdx} · Fecha: ${new Date(m.createdAt).toLocaleString()}`;
-      editTitle.value=m.title||"";editText.value=m.text||"";editType.value=m.type;
-      showModal(modal);
-    });
 
-    function closeModal(){ hideModal(modal); }
+      // 1) Scroll suave para centrar ese waypoint…
+      scrollToWaypointCenter(hit, 350, () => {
+        // 2) …y luego abrir modal con los datos
+        currentIdx=hit.idx; const m=memories[currentIdx];
+        const fallback=({mountain:"Senderismo 🏔️",travel:"Viaje ✈️",game:"Videojuego 🎮",love:"Romántico ❤️",camera:"Recuerdo 📸"})[m.type]??"Recuerdo";
+        titleEl.textContent=m.title||fallback;
+        idRow.textContent=`Índice: ${currentIdx} · Fecha: ${new Date(m.createdAt).toLocaleString()}`;
+        editTitle.value=m.title||""; editText.value=m.text||""; editType.value=m.type;
+        showModal(modal);
+      });
+    });
 
     saveBtn.addEventListener("click",()=>{
       if(currentIdx==null)return;
