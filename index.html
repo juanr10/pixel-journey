@@ -1,100 +1,102 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <title>Pixel Journey</title>
-  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
   <header>
     <h1>Pixel Journey</h1>
+    <p class="subtitle">Write your memories, forge your path.</p>
 
     <div class="controlBar">
-      <label class="nightSwitch" id="nightSwitchLabel" aria-label="Cambiar modo noche">
-        <input type="checkbox" id="toggleNight" aria-label="Modo noche">
+      <label class="nightSwitch" id="nightSwitchLabel" aria-label="Toggle night mode">
+        <input type="checkbox" id="toggleNight" aria-label="Night mode">
         <span class="icon sun" aria-hidden="true">☀️</span>
         <span class="track" aria-hidden="true"></span>
         <span class="icon moon" aria-hidden="true">🌙</span>
       </label>
 
-      <button id="openAddModal" class="primary">+ Añadir recuerdo</button>
+      <button id="openAddModal" class="btn-8bit primary">+ Add memory</button>
     </div>
   </header>
 
   <div class="boardWrap">
-    <canvas id="map" width="480" height="576" aria-label="Mapa de recuerdos - Pixel Journey"></canvas>
+    <canvas id="map" width="480" height="576" aria-label="Memory map - Pixel Journey"></canvas>
   </div>
 
-  <!-- Modal Añadir -->
+  <!-- Modal Add -->
   <div id="addModal" class="modal" role="dialog" aria-modal="true">
     <div class="modalInner">
-      <h2>Nuevo recuerdo</h2>
+      <h2>New memory</h2>
       <div id="addMeta" class="muted"></div>
 
       <div class="formRow">
-        <label for="addType">Categoría</label>
+        <label for="addType">Category</label>
         <select id="addType">
-          <option value="travel">Viaje ✈️</option>
-          <option value="mountain">Senderismo 🏔️</option>
-          <option value="game">Videojuego 🎮</option>
-          <option value="love">Romántico ❤️</option>
-          <option value="camera">Genérico 📸</option>
+          <option value="travel">Travel ✈️</option>
+          <option value="mountain">Hiking 🏔️</option>
+          <option value="game">Video game 🎮</option>
+          <option value="love">Romantic ❤️</option>
+          <option value="camera">Generic 📸</option>
         </select>
       </div>
 
       <div class="formRow">
-        <label for="addTitle">Título</label>
-        <input type="text" id="addTitle" placeholder="Ej. Viaje a París" required>
+        <label for="addTitle">Title</label>
+        <input type="text" id="addTitle" placeholder="e.g. Trip to Paris" required>
       </div>
 
       <div class="formRow">
-        <label for="addText">Descripción</label>
-        <textarea id="addText" rows="3" placeholder="Escribe un detalle bonito..." required></textarea>
+        <label for="addText">Description</label>
+        <textarea id="addText" rows="3" placeholder="Write something special..." required></textarea>
       </div>
 
       <div class="modalActions">
         <div></div>
         <div>
-          <button class="secondary" id="cancelAdd">Cancelar</button>
-          <button class="primary" id="saveAdd">Guardar</button>
+          <button class="btn-8bit secondary" id="cancelAdd">Cancel</button>
+          <button class="btn-8bit primary" id="saveAdd">Save</button>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Modal detalle/edición -->
+  <!-- Modal Edit -->
   <div id="modal" class="modal" role="dialog" aria-modal="true">
     <div class="modalInner">
       <h2 id="memoryTitle"></h2>
       <div id="idRow" class="muted"></div>
 
       <div class="formRow">
-        <label for="editType">Categoría</label>
+        <label for="editType">Category</label>
         <select id="editType">
-          <option value="travel">Viaje ✈️</option>
-          <option value="mountain">Senderismo 🏔️</option>
-          <option value="game">Videojuego 🎮</option>
-          <option value="love">Romántico ❤️</option>
-          <option value="camera">Genérico 📸</option>
+          <option value="travel">Travel ✈️</option>
+          <option value="mountain">Hiking 🏔️</option>
+          <option value="game">Video game 🎮</option>
+          <option value="love">Romantic ❤️</option>
+          <option value="camera">Generic 📸</option>
         </select>
       </div>
 
       <div class="formRow">
-        <label for="editTitle">Título</label>
+        <label for="editTitle">Title</label>
         <input type="text" id="editTitle" />
       </div>
 
       <div class="formRow">
-        <label for="editText">Descripción</label>
+        <label for="editText">Description</label>
         <textarea id="editText" rows="3"></textarea>
       </div>
 
       <div class="modalActions">
-        <div><button class="danger" id="deleteBtn">Eliminar</button></div>
+        <div><button class="btn-8bit danger" id="deleteBtn">Delete</button></div>
         <div>
-          <button class="secondary" id="closeModal">Cerrar</button>
-          <button class="primary" id="saveBtn">Guardar</button>
+          <button class="btn-8bit secondary" id="closeModal">Close</button>
+          <button class="btn-8bit primary" id="saveBtn">Save</button>
         </div>
       </div>
     </div>

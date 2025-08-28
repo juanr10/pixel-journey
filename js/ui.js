@@ -9,7 +9,7 @@ import {
 import { CONFIG, NIGHT_STORAGE_KEY, tileSize } from "./config.js";
 
 export function initUI() {
-  // ======= Referencias DOM (alta) =======
+  // ======= DOM refs (Add) =======
   const openAddModalBtn = document.getElementById("openAddModal");
   const addModal = document.getElementById("addModal");
   const cancelAdd = document.getElementById("cancelAdd");
@@ -19,7 +19,7 @@ export function initUI() {
   const addType = document.getElementById("addType");
   const addMeta = document.getElementById("addMeta");
 
-  // ======= Referencias DOM (edición) =======
+  // ======= DOM refs (Edit) =======
   const modal = document.getElementById("modal");
   const titleEl = document.getElementById("memoryTitle");
   const idRow = document.getElementById("idRow");
@@ -30,7 +30,7 @@ export function initUI() {
   const deleteBtn = document.getElementById("deleteBtn");
   const closeModalBtn = document.getElementById("closeModal");
 
-  // ======= Switch noche (manual + persistente) =======
+  // ======= Night switch (manual + persistent) =======
   const toggleNight = document.getElementById("toggleNight");
   if (toggleNight) {
     toggleNight.checked = CONFIG.IS_NIGHT;
@@ -39,31 +39,52 @@ export function initUI() {
       try {
         localStorage.setItem(NIGHT_STORAGE_KEY, CONFIG.IS_NIGHT ? "1" : "0");
       } catch {}
-      drawMap(); // aplicar de inmediato overlay/nubes
+      drawMap(); // apply overlay/clouds immediately
     });
   }
 
-  // ======= Helpers modales =======
+  // ======= Modal helpers (con cierre suave) =======
   function showModal(el) {
+    el.classList.remove("closing"); // por si quedó en ese estado
     el.classList.add("show");
     document.body.classList.add("no-scroll");
   }
   function hideModal(el) {
-    el.classList.remove("show");
-    document.body.classList.remove("no-scroll");
+    // Si ya está oculto, no hacemos nada
+    if (!el.classList.contains("show")) return;
+
+    // Añadimos estado intermedio para animar salida
+    el.classList.add("closing");
+
+    // Esperamos a que termine la transición del contenedor
+    const onEnd = (ev) => {
+      if (ev.target !== el) return; // nos aseguramos de que es la transición del overlay, no la del inner
+      el.removeEventListener("transitionend", onEnd);
+      el.classList.remove("show", "closing"); // ahora sí ocultamos del todo
+      document.body.classList.remove("no-scroll");
+    };
+    el.addEventListener("transitionend", onEnd);
+
+    // Fallback por si transitionend no dispara (p. ej. navegadores raros)
+    setTimeout(() => {
+      if (el.classList.contains("closing")) {
+        el.classList.remove("show", "closing");
+        document.body.classList.remove("no-scroll");
+      }
+    }, 350);
   }
   function closeEditModal() {
     hideModal(modal);
   }
 
-  // ======= Abrir modal de alta =======
+  // ======= Open Add modal =======
   function openAddModal() {
     addTitle.value = "";
     addText.value = "";
     addType.value = "camera";
-    addMeta.textContent = `Índice: ${
+    addMeta.textContent = `Index: ${
       memories.length
-    } · Fecha: ${new Date().toLocaleString()}`;
+    } · Date: ${new Date().toLocaleString()}`;
     showModal(addModal);
     setTimeout(() => addTitle.focus(), 0);
   }
@@ -71,19 +92,19 @@ export function initUI() {
   openAddModalBtn.addEventListener("click", openAddModal);
   cancelAdd.addEventListener("click", () => hideModal(addModal));
 
-  // ======= Guardar NUEVO recuerdo =======
+  // ======= Save NEW memory =======
   saveAdd.addEventListener("click", () => {
     const title = addTitle.value.trim();
     const text = addText.value.trim();
     const type = addType.value;
     if (!title || !text) {
-      alert("Completa todos los campos.");
+      alert("Please complete all fields.");
       return;
     }
 
     pushMemory({ title, text, type, createdAt: new Date().toISOString() });
 
-    // Asegura que el canvas crece antes de animar/dibujar
+    // Ensure canvas grows before animating/drawing
     ensureCapacity();
     focusLastWaypointIfBelowView();
     animateLastSegment();
@@ -91,7 +112,7 @@ export function initUI() {
     hideModal(addModal);
   });
 
-  // ======= Clicks en el canvas para abrir edición =======
+  // ======= Click on canvas -> open Edit modal =======
   let currentIdx = null;
   const canvas = document.getElementById("map");
 
@@ -111,15 +132,15 @@ export function initUI() {
     const m = memories[currentIdx];
     const fallback =
       {
-        mountain: "Senderismo 🏔️",
-        travel: "Viaje ✈️",
-        game: "Videojuego 🎮",
-        love: "Romántico ❤️",
-        camera: "Recuerdo 📸",
-      }[m.type] ?? "Recuerdo";
+        mountain: "Hiking 🏔️",
+        travel: "Travel ✈️",
+        game: "Video game 🎮",
+        love: "Romantic ❤️",
+        camera: "Memory 📸",
+      }[m.type] ?? "Memory";
 
     titleEl.textContent = m.title || fallback;
-    idRow.textContent = `Índice: ${currentIdx} · Fecha: ${new Date(
+    idRow.textContent = `Index: ${currentIdx} · Date: ${new Date(
       m.createdAt
     ).toLocaleString()}`;
     editTitle.value = m.title || "";
@@ -129,10 +150,10 @@ export function initUI() {
     showModal(modal);
   });
 
-  // ======= Guardar cambios en edición =======
+  // ======= Save edits =======
   saveBtn.addEventListener("click", () => {
     if (currentIdx == null) return;
-    const title = editTitle.value.trim() || "Recuerdo";
+    const title = editTitle.value.trim() || "Memory";
     const text = editText.value.trim();
     const type = editType.value;
 
@@ -144,22 +165,22 @@ export function initUI() {
     drawMap();
   });
 
-  // ======= Eliminar recuerdo =======
+  // ======= Delete memory =======
   deleteBtn.addEventListener("click", () => {
     if (currentIdx == null) return;
-    if (!confirm("¿Seguro que quieres eliminar este recuerdo?")) return;
+    if (!confirm("Are you sure you want to delete this memory?")) return;
 
     deleteMemoryAt(currentIdx);
     currentIdx = null;
 
-    // Reajusta altura y redibuja tras borrar
+    // Recompute height and redraw after delete
     ensureCapacity();
     drawMap();
 
     closeEditModal();
   });
 
-  // ======= Cierre por fondo / Escape =======
+  // ======= Close on backdrop / Esc =======
   [addModal, modal].forEach((m) =>
     m.addEventListener("click", (e) => {
       if (e.target === m) hideModal(m);
