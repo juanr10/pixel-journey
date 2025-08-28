@@ -38,7 +38,7 @@ export function setupCrispCanvas() {
   ctx.imageSmoothingEnabled = false;
 }
 
-// ========= Overlay Noche (manual) =========
+// ========= Night overlay =========
 export function drawNightOverlay(tSec) {
   if (!CONFIG.IS_NIGHT) return;
   const alpha = 0.55;
@@ -48,7 +48,7 @@ export function drawNightOverlay(tSec) {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.restore();
 
-  // estrellas
+  // stars
   const starCount = 100;
   const rnd = ((a) => () => {
     let t = (a += 0x6d2b79f5);
@@ -75,7 +75,7 @@ export function drawNightOverlay(tSec) {
   }
 }
 
-// ========= Helpers máscara no-agua =========
+// ========= No-water mask helpers =========
 function cellFromPoint(p) {
   const gx = Math.round((p.x - tileSize / 2) / tileSize);
   const gy = Math.round((p.y - tileSize / 2) / tileSize);
@@ -83,7 +83,7 @@ function cellFromPoint(p) {
 }
 function buildNoWaterMask(polyline, waypoints) {
   const mask = new Set();
-  // Casa + avatares (primer fila)
+  // House + avatars (first row)
   mask.add(`0,0`);
   mask.add(`1,0`);
   mask.add(`2,0`);
@@ -99,15 +99,20 @@ function buildNoWaterMask(polyline, waypoints) {
   return mask;
 }
 
-// ========= Layout dinámico =========
+// ========= Dynamic layout (forzar alto grande siempre) =========
 export function ensureCapacity() {
   const { waypoints } = computeWaypointsAndPolyline(memories, seed, gridW);
   const lastY = waypoints.length ? waypoints[waypoints.length - 1].y : 0;
-  setGridH(Math.max(12, lastY + 6)); // respiración extra
+
+  // 🔧 mínimo fijo muy alto: ajusta si quieres más/menos
+  const MIN_FORCED_ROWS = 40; // 40 * tileSize (50px) ≈ 2000px de alto
+  const targetRows = Math.max(MIN_FORCED_ROWS, lastY + 6);
+
+  setGridH(targetRows);
   setupCrispCanvas();
 }
 
-// ========= Avatares / iconos =========
+// ========= Avatars / icons =========
 function drawHouseAndAvatars(tSec = 0) {
   const bobJuan = Math.round(Math.sin(tSec * 2.0) * 2);
   const bobPaula = Math.round(Math.sin(tSec * 2.0 + Math.PI / 2) * 2);
@@ -186,13 +191,14 @@ function drawIcons(waypoints, uptoIdx = waypoints.length - 1, tSec = 0) {
   }
 }
 
-// ========= Camino =========
+// ========= Path =========
 function drawPathWithShadow(polyline, uptoIndex = polyline.length - 1) {
   if (polyline.length < 2) return;
   uptoIndex = Math.max(1, Math.min(uptoIndex, polyline.length - 1));
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
 
+  // shadow
   ctx.beginPath();
   ctx.moveTo(Math.round(polyline[0].x), Math.round(polyline[0].y));
   for (let i = 1; i <= uptoIndex; i++)
@@ -201,6 +207,7 @@ function drawPathWithShadow(polyline, uptoIndex = polyline.length - 1) {
   ctx.lineWidth = 26;
   ctx.stroke();
 
+  // body
   ctx.beginPath();
   ctx.moveTo(Math.round(polyline[0].x), Math.round(polyline[0].y));
   for (let i = 1; i <= uptoIndex; i++)
@@ -209,6 +216,7 @@ function drawPathWithShadow(polyline, uptoIndex = polyline.length - 1) {
   ctx.lineWidth = 22;
   ctx.stroke();
 
+  // highlight
   ctx.beginPath();
   ctx.moveTo(Math.round(polyline[0].x), Math.round(polyline[0].y));
   for (let i = 1; i <= uptoIndex; i++)
@@ -218,7 +226,7 @@ function drawPathWithShadow(polyline, uptoIndex = polyline.length - 1) {
   ctx.stroke();
 }
 
-// ========= Dibujo principal =========
+// ========= Main draws =========
 export function drawStatic(tSec = 0) {
   const { waypoints, polyline } = computeWaypointsAndPolyline(
     memories,
@@ -250,7 +258,7 @@ export function drawMap(tSec = 0) {
   drawClouds(ctx, tSec);
 }
 
-// ========= Autoenfoque =========
+// ========= Auto-focus last memory if below view =========
 export function focusLastWaypointIfBelowView() {
   const { waypoints } = computeWaypointsAndPolyline(memories, seed, gridW);
   if (waypoints.length === 0) return;
@@ -270,7 +278,7 @@ export function focusLastWaypointIfBelowView() {
   }
 }
 
-// ========= Animación al añadir =========
+// ========= Add-memory animation =========
 function countWaypointsVisible(polyline, uptoIdx) {
   const { waypoints } = computeWaypointsAndPolyline(memories, seed, gridW);
   let visible = -1;
