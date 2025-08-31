@@ -195,10 +195,13 @@ function drawHouseAndAvatars(tSec = 0) {
     // avatares a la derecha de la casa (tamaño intermedio)
     const avatarOffsetY = houseY + (tileSize - spriteSize) / 2;
 
+    // Margen izquierdo para los avatares (para que no estén pegados al borde)
+    const avatarMarginLeft = tileSize * 0.15; // 15% del tamaño de la celda
+
     // Juan en la primera celda a la derecha
     ctx.drawImage(
       sprites.juan,
-      houseX + tileSize + (tileSize - spriteSize) / 2,
+      houseX + tileSize + avatarMarginLeft + (tileSize - spriteSize) / 2,
       avatarOffsetY + bobJuan,
       spriteSize,
       spriteSize
@@ -207,7 +210,7 @@ function drawHouseAndAvatars(tSec = 0) {
     // Paula en la segunda celda a la derecha
     ctx.drawImage(
       sprites.paula,
-      houseX + tileSize * 2 + (tileSize - spriteSize) / 2,
+      houseX + tileSize * 2 + avatarMarginLeft + (tileSize - spriteSize) / 2,
       avatarOffsetY + bobPaula,
       spriteSize,
       spriteSize
