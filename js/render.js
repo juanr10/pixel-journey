@@ -270,13 +270,13 @@ function drawDateTag(cx, cy, baseSize, createdAt) {
     const tagWidth = 64;
     const tagHeight = 24;
 
-    // Position the tag to the right and slightly above the icon (moved further right)
-    let tagX = cx + baseSize * 0.8;
+    // Position the tag to the right and slightly above the icon (closer to icon)
+    let tagX = cx + baseSize * 0.6;
     let tagY = cy - baseSize * 0.5;
 
     // Adjust position if tag would go off-screen
     if (tagX + tagWidth > canvas.width) {
-      tagX = cx - baseSize * 0.8 - tagWidth; // Move to left side
+      tagX = cx - baseSize * 0.6 - tagWidth; // Move to left side
     }
     if (tagY < 0) {
       tagY = cy + baseSize * 0.5; // Move below icon
