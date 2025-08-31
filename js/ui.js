@@ -7,6 +7,8 @@ import {
   ensureCapacity,
 } from "./render.js";
 import { CONFIG, NIGHT_STORAGE_KEY, tileSize } from "./config.js";
+import { PersistenceAdapter } from "./adapters/persistence-adapter.js";
+import { ImageSelector } from "./components/image-selector.js";
 
 export function initUI() {
   // ======= DOM refs (Add) =======
@@ -31,20 +33,27 @@ export function initUI() {
   const closeModalBtn = document.getElementById("closeModal");
 
   // ======= Referencias al sistema de memories =======
-  let formIntegration = null;
+  let persistenceAdapter = null;
   let addImageSelector = null;
   let editImageSelector = null;
 
+  // Inicializar el sistema de memories
+  async function initMemorySystem() {
+    if (!persistenceAdapter) {
+      try {
+        persistenceAdapter = new PersistenceAdapter();
+        await persistenceAdapter.init();
+        console.log("Sistema de memories inicializado en UI");
+      } catch (error) {
+        console.error("Error inicializando sistema de memories:", error);
+      }
+    }
+    return persistenceAdapter;
+  }
+
   // Obtener el sistema de memories ya inicializado
   function getMemorySystem() {
-    if (!formIntegration && window.formIntegration) {
-      formIntegration = window.formIntegration;
-      console.log(
-        "Sistema de memories obtenido desde window:",
-        formIntegration
-      );
-    }
-    return formIntegration;
+    return persistenceAdapter;
   }
 
   // ======= Night switch (manual + persistent) =======
@@ -98,10 +107,7 @@ export function initUI() {
   function integrateImageSelectorInAddModal() {
     const memorySystem = getMemorySystem();
     if (!memorySystem) {
-      console.warn(
-        "Sistema de memories no disponible, reintentando en 500ms..."
-      );
-      setTimeout(integrateImageSelectorInAddModal, 500);
+      console.log("Sistema de memories no disponible para modal de añadir");
       return;
     }
 
@@ -118,8 +124,8 @@ export function initUI() {
         addTextContainer.nextSibling
       );
 
-      // Crear el selector de imágenes
-      addImageSelector = memorySystem.integrateImageSelector(addModal, {
+      // Crear el selector de imágenes directamente
+      addImageSelector = new ImageSelector(imageContainer, {
         maxFiles: 5,
         showPreview: true,
         onImageSelect: (imageData) => {
@@ -143,10 +149,7 @@ export function initUI() {
   function integrateImageSelectorInEditModal() {
     const memorySystem = getMemorySystem();
     if (!memorySystem) {
-      console.warn(
-        "Sistema de memories no disponible, reintentando en 500ms..."
-      );
-      setTimeout(integrateImageSelectorInEditModal, 500);
+      console.log("Sistema de memories no disponible para modal de editar");
       return;
     }
 
@@ -163,8 +166,8 @@ export function initUI() {
         editTextContainer.nextSibling
       );
 
-      // Crear el selector de imágenes
-      editImageSelector = memorySystem.integrateImageSelector(modal, {
+      // Crear el selector de imágenes directamente
+      editImageSelector = new ImageSelector(imageContainer, {
         maxFiles: 5,
         showPreview: true,
         onImageSelect: (imageData) => {
@@ -252,8 +255,7 @@ export function initUI() {
         }
 
         // Recargar memories desde el sistema integrado
-        const allMemories =
-          await memorySystem.persistenceAdapter.getAllMemories();
+        const allMemories = await memorySystem.persistenceAdapter.getMemories();
         setMemories(allMemories);
       } else {
         // Fallback al sistema original
@@ -377,8 +379,7 @@ export function initUI() {
         }
 
         // Recargar memories desde el sistema integrado
-        const allMemories =
-          await memorySystem.persistenceAdapter.getAllMemories();
+        const allMemories = await memorySystem.persistenceAdapter.getMemories();
         setMemories(allMemories);
       } else {
         // Fallback al sistema original
@@ -408,8 +409,7 @@ export function initUI() {
         await memorySystem.persistenceAdapter.deleteMemory(memory.id);
 
         // Recargar memories desde el sistema integrado
-        const allMemories =
-          await memorySystem.persistenceAdapter.getAllMemories();
+        const allMemories = await memorySystem.persistenceAdapter.getMemories();
         setMemories(allMemories);
       } else {
         // Fallback al sistema original
@@ -443,20 +443,18 @@ export function initUI() {
   });
   closeModalBtn.addEventListener("click", closeEditModal);
 
-  // ======= Integrar selectores de imágenes cuando los modales estén listos =======
-  // Esperar a que el DOM esté completamente cargado y el sistema esté disponible
-  function initializeImageSelectors() {
-    const memorySystem = getMemorySystem();
-    if (memorySystem) {
+  // ======= Inicializar sistema de memories y selectores de imágenes =======
+  async function initializeMemorySystem() {
+    try {
+      await initMemorySystem();
       console.log("Inicializando selectores de imágenes...");
       integrateImageSelectorInAddModal();
       integrateImageSelectorInEditModal();
-    } else {
-      console.log("Sistema de memories no disponible, reintentando...");
-      setTimeout(initializeImageSelectors, 1000);
+    } catch (error) {
+      console.error("Error inicializando sistema de memories:", error);
     }
   }
 
-  // Iniciar después de un breve delay para asegurar que todo esté listo
-  setTimeout(initializeImageSelectors, 500);
+  // Inicializar después de un breve delay
+  setTimeout(initializeMemorySystem, 100);
 }

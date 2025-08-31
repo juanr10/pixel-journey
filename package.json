@@ -1,0 +1,21 @@
+{
+    "name": "pixellife",
+    "version": "1.0.0",
+    "description": "PixelLife - Memory Management App",
+    "main": "index.html",
+    "scripts": {
+        "dev": "vite",
+        "build": "vite build",
+        "preview": "vite preview"
+    },
+    "devDependencies": {
+        "vite": "^5.0.0"
+    },
+    "keywords": [
+        "pixellife",
+        "memories",
+        "game"
+    ],
+    "author": "",
+    "license": "MIT"
+}

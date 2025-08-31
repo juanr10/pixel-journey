@@ -7,6 +7,9 @@ import {
   isLocalStorageAvailable,
 } from "../config/persistence-config.js";
 
+// Singleton instance
+let singletonInstance = null;
+
 // Importar implementaciones
 let FirebaseAdapter = null;
 let LocalStorageAdapter = null;
@@ -35,6 +38,11 @@ async function loadAdapters() {
 
 export class PersistenceAdapter {
   constructor() {
+    // Singleton pattern - solo una instancia
+    if (singletonInstance) {
+      return singletonInstance;
+    }
+
     this.firebaseAdapter = null;
     this.localStorageAdapter = null;
     this.activeAdapter = null;
@@ -45,10 +53,19 @@ export class PersistenceAdapter {
       onMemoryDelete: null,
       onError: null,
     };
+
+    // Guardar la instancia singleton
+    singletonInstance = this;
   }
 
   // Inicializar el adaptador
   async init() {
+    // Si ya está inicializado, no hacer nada
+    if (this.isInitialized) {
+      console.log("PersistenceAdapter ya está inicializado");
+      return;
+    }
+
     try {
       // Cargar adaptadores disponibles
       await loadAdapters();

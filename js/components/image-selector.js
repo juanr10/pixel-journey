@@ -3,8 +3,18 @@
 
 import { PERSISTENCE_CONFIG } from "../config/persistence-config.js";
 
+// Singleton instances por contenedor
+const imageSelectorInstances = new Map();
+
 export class ImageSelector {
   constructor(container, options = {}) {
+    // Singleton pattern por contenedor
+    const containerId = container.id || container.className || "default";
+    if (imageSelectorInstances.has(containerId)) {
+      console.log("ImageSelector ya existe para este contenedor:", containerId);
+      return imageSelectorInstances.get(containerId);
+    }
+
     this.container = container;
     this.options = {
       maxFiles: 5,
@@ -21,15 +31,26 @@ export class ImageSelector {
     this.images = [];
     // Corregir la referencia: IMAGE → IMAGES
     this.imageConfig = PERSISTENCE_CONFIG.IMAGES;
+    this.isInitialized = false;
+
+    // Guardar la instancia singleton
+    imageSelectorInstances.set(containerId, this);
 
     this.init();
   }
 
   async init() {
+    // Si ya está inicializado, no hacer nada
+    if (this.isInitialized) {
+      console.log("ImageSelector ya está inicializado");
+      return;
+    }
+
     try {
       this.createHTML();
       this.bindEvents();
       this.addStyles();
+      this.isInitialized = true;
       console.log("ImageSelector initialized successfully");
     } catch (error) {
       console.error("Error initializing ImageSelector:", error);

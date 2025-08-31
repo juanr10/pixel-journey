@@ -197,17 +197,5 @@ export function getDevConfig() {
   return PERSISTENCE_CONFIG.DEV;
 }
 
-// Función para debug de configuración
-export function debugConfig() {
-  if (PERSISTENCE_CONFIG.DEV.DEBUG) {
-    console.group("🔧 Configuración de Persistencia");
-    console.log("Tipo:", PERSISTENCE_CONFIG.TYPE);
-    console.log("Firebase disponible:", isFirebaseAvailable());
-    console.log("localStorage disponible:", isLocalStorageAvailable());
-    console.log("Configuración completa:", PERSISTENCE_CONFIG);
-    console.groupEnd();
-  }
-}
-
 // Exportar configuración por defecto
 export default PERSISTENCE_CONFIG;

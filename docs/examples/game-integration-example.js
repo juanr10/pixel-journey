@@ -2,7 +2,6 @@
 // Ejemplo de cómo integrar el sistema de memories con el juego existente
 
 import { PersistenceAdapter } from "../adapters/persistence-adapter.js";
-import { debugConfig } from "../config/persistence-config.js";
 
 // Ejemplo de integración con el juego existente
 export class GameIntegrationExample {
@@ -18,9 +17,6 @@ export class GameIntegrationExample {
   // Inicializar el sistema
   async init() {
     try {
-      // Debug de configuración
-      debugConfig();
-
       // Inicializar adaptador de persistencia
       await this.persistenceAdapter.init();
 
@@ -42,7 +38,7 @@ export class GameIntegrationExample {
   async loadExistingData() {
     try {
       // Cargar memories
-      this.memories = await this.persistenceAdapter.getAllMemories();
+      this.memories = await this.persistenceAdapter.getMemories();
       console.log(`${this.memories.length} memories cargados`);
 
       // Cargar paths
@@ -661,30 +657,3 @@ export async function initGameIntegration() {
 
   return integration;
 }
-
-// Ejemplo de uso:
-/*
-// En tu archivo principal del juego:
-import { initGameIntegration } from './examples/game-integration-example.js';
-
-window.addEventListener('DOMContentLoaded', async () => {
-  try {
-    const gameIntegration = await initGameIntegration();
-    
-    // Ahora puedes usar gameIntegration desde cualquier parte del juego
-    console.log('Memories cargados:', gameIntegration.memories);
-    console.log('Paths cargados:', gameIntegration.paths);
-    
-    // Crear memory desde el juego
-    const memoryId = await gameIntegration.createMemoryFromGame({
-      type: 'game',
-      title: 'Nuevo logro',
-      description: 'Completé el nivel 5',
-      position: { x: 50, y: 75 }
-    });
-    
-  } catch (error) {
-    console.error('Failed to initialize game integration:', error);
-  }
-});
-*/

@@ -6,8 +6,16 @@ import {
   getImageConfig,
 } from "../config/persistence-config.js";
 
+// Singleton instance
+let firebaseSingletonInstance = null;
+
 export class FirebaseAdapter {
   constructor() {
+    // Singleton pattern - solo una instancia
+    if (firebaseSingletonInstance) {
+      return firebaseSingletonInstance;
+    }
+
     this.config = getFirebaseConfig();
     this.imageConfig = getImageConfig();
     this.db = null;
@@ -20,10 +28,19 @@ export class FirebaseAdapter {
       onMemoryDelete: null,
       onError: null,
     };
+
+    // Guardar la instancia singleton
+    firebaseSingletonInstance = this;
   }
 
   // Inicializar el adaptador
   async init() {
+    // Si ya está inicializado, no hacer nada
+    if (this.isInitialized) {
+      console.log("FirebaseAdapter ya está inicializado");
+      return;
+    }
+
     try {
       // Importar Firebase dinámicamente
       const { initializeApp } = await import(

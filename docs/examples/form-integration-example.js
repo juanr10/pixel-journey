@@ -3,7 +3,6 @@
 
 import { PersistenceAdapter } from "../adapters/persistence-adapter.js";
 import { ImageSelector } from "../components/image-selector.js";
-import { debugConfig } from "../config/persistence-config.js";
 
 // Ejemplo de integración con formularios existentes
 export class FormIntegrationExample {
@@ -17,9 +16,6 @@ export class FormIntegrationExample {
   // Inicializar el sistema
   async init() {
     try {
-      // Debug de configuración
-      debugConfig();
-
       // Inicializar adaptador de persistencia
       await this.persistenceAdapter.init();
 
@@ -470,27 +466,3 @@ export async function initFormIntegration() {
 
   return integration;
 }
-
-// Ejemplo de uso:
-/*
-// En tu archivo principal:
-import { initFormIntegration } from './examples/form-integration-example.js';
-
-window.addEventListener('DOMContentLoaded', async () => {
-  try {
-    const integration = await initFormIntegration();
-    
-    // Integrar en formulario existente
-    integration.integrateInMemoryForm();
-    
-    // O integrar en formulario personalizado
-    integration.integrateInCustomForm('#my-custom-form', {
-      maxFiles: 5,
-      showPreview: true
-    });
-    
-  } catch (error) {
-    console.error('Failed to initialize form integration:', error);
-  }
-});
-*/
