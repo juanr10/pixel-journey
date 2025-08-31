@@ -46,11 +46,6 @@ export function recomputeTileSize() {
   // Calcular tamaño específico para la casa
   HOUSE_SCALE = computeHouseScale();
   houseSize = TILE_SRC_PX * HOUSE_SCALE;
-
-  // Log para debugging
-  console.log(`🎯 Tile size: ${tileSize}px (scale: ${TILE_SCALE}x)`);
-  console.log(`👥 Avatar size: ${spriteSize}px (scale: ${SPRITE_SCALE}x)`);
-  console.log(`🏠 House size: ${houseSize}px (scale: ${HOUSE_SCALE}x)`);
 }
 
 // Función para detectar dispositivos móviles
