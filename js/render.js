@@ -1,6 +1,8 @@
 // js/render.js
 // Updated animation: Both avatars (Juan and Paula) now walk together when creating memories
 // Animation duration increased from 900ms to 1800ms for better visual experience
+// Ultra-smooth animation with interpolation and optimized frame rate
+// Sparkles now spawn exactly when the new memory icon is fully visible
 import { CONFIG, tileSize } from "./config.js";
 import { clamp, easeInOut } from "./utils.js";
 import { gridW, gridH, seed, memories, setGridH, cellCenter } from "./state.js";
@@ -269,28 +271,95 @@ function drawPathWithShadow(polyline, uptoIndex = polyline.length - 1) {
 
   // shadow
   ctx.beginPath();
-  ctx.moveTo(Math.round(polyline[0].x), Math.round(polyline[0].y));
-  for (let i = 1; i <= uptoIndex; i++)
-    ctx.lineTo(Math.round(polyline[i].x), Math.round(polyline[i].y));
+  ctx.moveTo(polyline[0].x, polyline[0].y);
+  for (let i = 1; i <= uptoIndex; i++) ctx.lineTo(polyline[i].x, polyline[i].y);
   ctx.strokeStyle = "rgba(50,40,20,0.35)";
   ctx.lineWidth = 26;
   ctx.stroke();
 
   // body
   ctx.beginPath();
-  ctx.moveTo(Math.round(polyline[0].x), Math.round(polyline[0].y));
-  for (let i = 1; i <= uptoIndex; i++)
-    ctx.lineTo(Math.round(polyline[i].x), Math.round(polyline[i].y));
+  ctx.moveTo(polyline[0].x, polyline[0].y);
+  for (let i = 1; i <= uptoIndex; i++) ctx.lineTo(polyline[i].x, polyline[i].y);
   ctx.strokeStyle = "#c2b280";
   ctx.lineWidth = 22;
   ctx.stroke();
 
   // highlight
   ctx.beginPath();
-  ctx.moveTo(Math.round(polyline[0].x), Math.round(polyline[0].y));
-  for (let i = 1; i <= uptoIndex; i++)
-    ctx.lineTo(Math.round(polyline[i].x), Math.round(polyline[i].y));
-  ctx.strokeStyle = "#e8d7a5";
+  ctx.moveTo(polyline[0].x, polyline[0].y);
+  for (let i = 1; i <= uptoIndex; i++) ctx.lineTo(polyline[i].x, polyline[i].y);
+  ctx.strokeStyle = "#e8d8a5";
+  ctx.lineWidth = 10;
+  ctx.stroke();
+}
+
+// New function for smooth path drawing during animation
+// This ensures the path drawing speed matches the avatar movement speed
+function drawPathWithShadowSmooth(polyline, progressIdx) {
+  if (polyline.length < 2) return;
+
+  const currentIdx = Math.floor(progressIdx);
+  const nextIdx = Math.min(currentIdx + 1, polyline.length - 1);
+  const interpolation = progressIdx - currentIdx;
+
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+
+  // shadow
+  ctx.beginPath();
+  ctx.moveTo(polyline[0].x, polyline[0].y);
+  for (let i = 1; i <= currentIdx; i++)
+    ctx.lineTo(polyline[i].x, polyline[i].y);
+
+  // Interpolate the last segment for smooth movement
+  if (currentIdx < polyline.length - 1) {
+    const a = polyline[currentIdx];
+    const b = polyline[nextIdx];
+    const smoothX = a.x + (b.x - a.x) * interpolation;
+    const smoothY = a.y + (b.y - a.y) * interpolation;
+    ctx.lineTo(smoothX, smoothY);
+  }
+
+  ctx.strokeStyle = "rgba(50,40,20,0.35)";
+  ctx.lineWidth = 26;
+  ctx.stroke();
+
+  // body
+  ctx.beginPath();
+  ctx.moveTo(polyline[0].x, polyline[0].y);
+  for (let i = 1; i <= currentIdx; i++)
+    ctx.lineTo(polyline[i].x, polyline[i].y);
+
+  // Interpolate the last segment for smooth movement
+  if (currentIdx < polyline.length - 1) {
+    const a = polyline[currentIdx];
+    const b = polyline[nextIdx];
+    const smoothX = a.x + (b.x - a.x) * interpolation;
+    const smoothY = a.y + (b.y - a.y) * interpolation;
+    ctx.lineTo(smoothX, smoothY);
+  }
+
+  ctx.strokeStyle = "#c2b280";
+  ctx.lineWidth = 22;
+  ctx.stroke();
+
+  // highlight
+  ctx.beginPath();
+  ctx.moveTo(polyline[0].x, polyline[0].y);
+  for (let i = 1; i <= currentIdx; i++)
+    ctx.lineTo(polyline[i].x, polyline[i].y);
+
+  // Interpolate the last segment for smooth movement
+  if (currentIdx < polyline.length - 1) {
+    const a = polyline[currentIdx];
+    const b = polyline[nextIdx];
+    const smoothX = a.x + (b.x - a.x) * interpolation;
+    const smoothY = a.y + (b.y - a.y) * interpolation;
+    ctx.lineTo(smoothX, smoothY);
+  }
+
+  ctx.strokeStyle = "#e8d8a5";
   ctx.lineWidth = 10;
   ctx.stroke();
 }
@@ -393,7 +462,7 @@ export function animateLastSegment() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     const mask = buildNoWaterMask(polyline, waypoints);
     drawTiles(ctx, gridW, gridH, seed, mask);
-    drawPathWithShadow(polyline, progressIdx);
+    drawPathWithShadowSmooth(polyline, progressIdx);
     drawNightOverlay(tSec);
 
     const visibleWp = countWaypointsVisible(polyline, progressIdx);
@@ -416,16 +485,22 @@ export function animateLastSegment() {
         const prog = (progressIdx - prevEnd) / Math.max(1, totalEnd - prevEnd);
         const popPhase = clamp((prog - 0.7) / 0.3, 0, 1);
         scale = 0.9 + 0.1 * easeInOut(popPhase);
-        if (!sparkSpawned && popPhase > 0.05) {
-          sparkSpawned = true;
-          spawnSparkles(cx, cy, seed, 20);
-        }
       }
       drawIconScaled(icon, cx, cy, baseSize, scale);
       drawPOIAtCell(ctx, w.x, w.y, m.type, tSec);
     }
 
-    const a = polyline[progressIdx];
+    // Get current and next polyline points for smooth interpolation
+    const currentIdx = Math.floor(progressIdx);
+    const nextIdx = Math.min(currentIdx + 1, polyline.length - 1);
+    const interpolation = progressIdx - currentIdx;
+
+    const a = polyline[currentIdx];
+    const b = polyline[nextIdx];
+
+    // Interpolate position smoothly between current and next point
+    const smoothX = a.x + (b.x - a.x) * interpolation;
+    const smoothY = a.y + (b.y - a.y) * interpolation;
 
     // Draw both avatars walking together with slight offset
     if (
@@ -434,19 +509,46 @@ export function animateLastSegment() {
       sprites.paula &&
       sprites.paula.width
     ) {
-      // Draw Juan (boy) slightly behind and to the left with smooth bobbing animation
-      const juanBobOffset = Math.sin(tSec * 4) * 2;
-      ctx.drawImage(sprites.juan, a.x - 20, a.y - 16 + juanBobOffset, 32, 32);
+      // Draw Juan (boy) slightly behind and to the left with synchronized bobbing animation
+      const juanBobOffset = Math.sin(tSec * 4) * 1.2;
+      ctx.drawImage(
+        sprites.juan,
+        smoothX - 20,
+        smoothY - 16 + juanBobOffset,
+        32,
+        32
+      );
 
-      // Draw Paula (girl) slightly ahead and to the right with smooth bobbing animation
-      const paulaBobOffset = Math.sin(tSec * 4 + Math.PI * 0.5) * 2;
-      ctx.drawImage(sprites.paula, a.x - 12, a.y - 16 + paulaBobOffset, 32, 32);
+      // Draw Paula (girl) slightly ahead and to the right with synchronized bobbing animation
+      const paulaBobOffset = Math.sin(tSec * 4 + Math.PI * 0.4) * 1.2;
+      ctx.drawImage(
+        sprites.paula,
+        smoothX - 12,
+        smoothY - 16 + paulaBobOffset,
+        32,
+        32
+      );
     } else {
       // Fallback if sprites aren't loaded
       ctx.fillStyle = "#fff";
       ctx.beginPath();
-      ctx.arc(Math.round(a.x), Math.round(a.y), 5, 0, Math.PI * 2);
+      ctx.arc(smoothX, smoothY, 5, 0, Math.PI * 2);
       ctx.fill();
+    }
+
+    // Spawn sparkles when avatars reach the new memory location and the icon is fully visible
+    if (!sparkSpawned) {
+      const prog = (progressIdx - prevEnd) / Math.max(1, totalEnd - prevEnd);
+      // Wait until the icon is almost completely visible (popPhase > 0.98) before spawning sparkles
+      const popPhase = clamp((prog - 0.7) / 0.3, 0, 1);
+      if (popPhase > 0.98) {
+        sparkSpawned = true;
+        // Get the position of the new memory (last waypoint)
+        const newMemoryPos = waypoints[waypoints.length - 1];
+        const sparkX = newMemoryPos.x * tileSize + 8 + baseSize / 2;
+        const sparkY = newMemoryPos.y * tileSize + 8 + baseSize / 2;
+        spawnSparkles(sparkX, sparkY, seed, 25);
+      }
     }
 
     updateAndDrawSparkles(ctx, dt);
@@ -463,13 +565,19 @@ export function animateLastSegment() {
 
     const t = Math.min(1, (ts - start) / DURATION);
     const eased = easeInOut(t);
-    const idx = Math.max(
-      prevEnd,
-      Math.min(totalEnd, Math.floor(prevEnd + eased * (totalEnd - prevEnd)))
-    );
+
+    // Use smoother interpolation for more fluid movement
+    const exactIdx = prevEnd + eased * (totalEnd - prevEnd);
+    const idx = Math.max(prevEnd, Math.min(totalEnd, exactIdx));
+
     render(idx, ts / 1000, dt);
-    if (t < 1) requestAnimationFrame(step);
-    else drawMap(ts / 1000);
+
+    // Always request next frame for smoother animation
+    if (t < 1) {
+      requestAnimationFrame(step);
+    } else {
+      drawMap(ts / 1000);
+    }
   }
   requestAnimationFrame(step);
 }

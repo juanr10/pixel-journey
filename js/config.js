@@ -32,6 +32,7 @@ export const CONFIG = {
   SHOW_POIS: true,
   CRISP_ALIGN: true,
   ANIM_DURATION_MS: 1800, // Increased from 900ms to show both avatars walking together
+  ANIM_SMOOTHING: true, // Enable ultra-smooth animation interpolation
   ANIM_IDLE: true,
 
   // Modo noche MANUAL (persistente)
