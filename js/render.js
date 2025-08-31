@@ -3,7 +3,7 @@
 // Animation duration increased from 900ms to 1800ms for better visual experience
 // Ultra-smooth animation with interpolation and optimized frame rate
 // Sparkles now spawn exactly when the new memory icon is fully visible
-import { CONFIG, tileSize } from "./config.js";
+import { CONFIG, tileSize, spriteSize, houseSize } from "./config.js";
 import { clamp, easeInOut } from "./utils.js";
 import { gridW, gridH, seed, memories, setGridH, cellCenter } from "./state.js";
 import { drawTiles } from "./tiles.js";
@@ -178,51 +178,39 @@ function drawHouseAndAvatars(tSec = 0) {
   const houseX = HOUSE_COL * tileSize;
   const houseY = HOUSE_ROW * tileSize;
 
-  ctx.drawImage(sprites.house, houseX, houseY, tileSize, tileSize);
+  // Centrar la casa en su celda (sprite más grande que tile)
+  const houseOffsetX = houseX + (tileSize - houseSize) / 2;
+  const houseOffsetY = houseY + (tileSize - houseSize) / 2;
+
+  // Dibujar casa con tamaño específico (más grande que avatares)
+  ctx.drawImage(
+    sprites.house,
+    houseOffsetX,
+    houseOffsetY,
+    houseSize,
+    houseSize
+  );
 
   if (gridW >= 3) {
-    // sombras bajo sprites
-    ctx.save();
-    ctx.globalAlpha = 0.25;
-    ctx.fillStyle = "#2b3a1f";
-    ctx.beginPath();
-    ctx.ellipse(
-      houseX + tileSize * 1.5,
-      houseY + tileSize * 0.93,
-      tileSize * 0.28,
-      tileSize * 0.1,
-      0,
-      0,
-      Math.PI * 2
-    );
-    ctx.fill();
-    ctx.beginPath();
-    ctx.ellipse(
-      houseX + tileSize * 2.5,
-      houseY + tileSize * 0.93,
-      tileSize * 0.28,
-      tileSize * 0.1,
-      0,
-      0,
-      Math.PI * 2
-    );
-    ctx.fill();
-    ctx.restore();
+    // avatares a la derecha de la casa (tamaño intermedio)
+    const avatarOffsetY = houseY + (tileSize - spriteSize) / 2;
 
-    // avatares a la derecha de la casa
+    // Juan en la primera celda a la derecha
     ctx.drawImage(
       sprites.juan,
-      houseX + tileSize,
-      houseY + bobJuan,
-      tileSize,
-      tileSize
+      houseX + tileSize + (tileSize - spriteSize) / 2,
+      avatarOffsetY + bobJuan,
+      spriteSize,
+      spriteSize
     );
+
+    // Paula en la segunda celda a la derecha
     ctx.drawImage(
       sprites.paula,
-      houseX + tileSize * 2,
-      houseY + bobPaula,
-      tileSize,
-      tileSize
+      houseX + tileSize * 2 + (tileSize - spriteSize) / 2,
+      avatarOffsetY + bobPaula,
+      spriteSize,
+      spriteSize
     );
   }
 }
