@@ -12,6 +12,10 @@ import { initClouds, bindScrollParallax } from "./clouds.js";
 import { recomputeTileSize, tileSize, updateCloudsConfig } from "./config.js";
 import { setGridW } from "./state.js";
 
+// Importar el sistema de memories integrado
+import { initFormIntegration } from "./examples/form-integration-example.js";
+import { initGameIntegration } from "./examples/game-integration-example.js";
+
 function fitBoardDimensions() {
   // 1) Escala del tile según viewport
   recomputeTileSize();
@@ -34,6 +38,31 @@ function fitBoardDimensions() {
   setGridW(cols);
 }
 
+// Inicializar sistema de memories
+async function initMemorySystem() {
+  try {
+    console.log("Inicializando sistema de memories...");
+
+    // Inicializar integración con formularios
+    const formIntegration = await initFormIntegration();
+    console.log("FormIntegration inicializado:", formIntegration);
+
+    // Inicializar integración con el juego
+    const gameIntegration = await initGameIntegration();
+    console.log("GameIntegration inicializado:", gameIntegration);
+
+    // Hacer disponible globalmente para debugging
+    window.formIntegration = formIntegration;
+    window.gameIntegration = gameIntegration;
+
+    console.log("✅ Sistema de memories inicializado correctamente");
+    return { formIntegration, gameIntegration };
+  } catch (error) {
+    console.error("❌ Error inicializando sistema de memories:", error);
+    return null;
+  }
+}
+
 window.addEventListener("DOMContentLoaded", async () => {
   fitBoardDimensions();
 
@@ -41,7 +70,13 @@ window.addEventListener("DOMContentLoaded", async () => {
   await Promise.all([loadSprites(), loadTileset()]);
   ensureCapacity();
   drawMap();
+
+  // Inicializar sistema de memories ANTES de la UI
+  const memorySystem = await initMemorySystem();
+
+  // Inicializar UI (que ahora usará el sistema de memories)
   initUI();
+
   // Las nubes se inicializan condicionalmente (desactivadas en móviles para mejor rendimiento)
   initClouds(canvas);
   bindScrollParallax();
