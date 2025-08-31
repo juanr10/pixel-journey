@@ -49,28 +49,77 @@ export function drawNightOverlay(tSec) {
   ctx.restore();
 
   // stars
-  const starCount = 100;
+  const starCount = 150; // Aumentado de 120 a 150
   const rnd = ((a) => () => {
     let t = (a += 0x6d2b79f5);
     t = Math.imul(t ^ (t >>> 15), t | 1);
     t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   })(0xa5f42c91);
+
   for (let i = 0; i < starCount; i++) {
     const x = Math.floor(rnd() * canvas.width);
     const y = Math.floor(rnd() * canvas.height);
     const tw = (Math.sin(tSec * 3 + i * 0.37) + 1) / 2;
-    const a = 0.25 + tw * 0.55;
+
+    // Mejorar la animación de parpadeo
+    const baseAlpha = 0.4 + tw * 0.6; // Aumentado de 0.25 + tw * 0.55
+    const twinkle = Math.sin(tSec * 5 + i * 0.8) * 0.3 + 1; // Parpadeo adicional
+    const a = baseAlpha * twinkle;
+
     ctx.save();
-    ctx.globalAlpha = a * 0.9;
-    ctx.fillStyle = "#fff8c4";
-    if (rnd() < 0.2) {
-      ctx.fillRect(x - 1, y, 1, 1);
-      ctx.fillRect(x + 1, y, 1, 1);
-      ctx.fillRect(x, y - 1, 1, 1);
-      ctx.fillRect(x, y + 1, 1, 1);
-      ctx.fillRect(x, y, 1, 1);
-    } else ctx.fillRect(x, y, 1, 1);
+    ctx.globalAlpha = a;
+
+    // Variedad de colores y tamaños para las estrellas
+    const starType = rnd();
+    let starSize = 1;
+    let starColor = "#fff8c4";
+
+    if (starType < 0.05) {
+      // Estrellas muy brillantes (5%)
+      starColor = "#fff8c4"; // Cambiado de blanco a amarillo claro
+      starSize = 3; // Aumentado de 2 a 3
+      ctx.globalAlpha = Math.min(1, a * 1.5);
+    } else if (starType < 0.15) {
+      // Estrellas brillantes (10%)
+      starColor = "#fff8c4";
+      starSize = 2; // Aumentado de 1 a 2
+    } else if (starType < 0.25) {
+      // Estrellas azuladas (10%)
+      starColor = "#b8d4ff";
+      starSize = 2; // Aumentado de 1 a 2
+    } else if (starType < 0.35) {
+      // Estrellas amarillentas (10%)
+      starColor = "#fff4b8";
+      starSize = 2; // Aumentado de 1 a 2
+    } else {
+      // Estrellas normales (60%)
+      starColor = "#fff8c4";
+      starSize = 2; // Aumentado de 1 a 2
+    }
+
+    ctx.fillStyle = starColor;
+
+    // Dibujar estrellas con diferentes patrones
+    if (starType < 0.1) {
+      // Estrellas en cruz (10%)
+      ctx.fillRect(x - starSize, y, starSize, starSize);
+      ctx.fillRect(x + starSize, y, starSize, starSize);
+      ctx.fillRect(x, y - starSize, starSize, starSize);
+      ctx.fillRect(x, y + starSize, starSize, starSize);
+      ctx.fillRect(x, y, starSize, starSize);
+    } else if (starType < 0.2) {
+      // Estrellas pequeñas en cruz (10%)
+      ctx.fillRect(x - 2, y, 2, 2);
+      ctx.fillRect(x, y - 2, 2, 2);
+      ctx.fillRect(x + 2, y, 2, 2);
+      ctx.fillRect(x, y + 2, 2, 2);
+      ctx.fillRect(x, y, 2, 2);
+    } else {
+      // Estrellas simples (80%)
+      ctx.fillRect(x, y, starSize, starSize);
+    }
+
     ctx.restore();
   }
 }
