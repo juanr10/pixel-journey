@@ -31,7 +31,7 @@ export const CONFIG = {
   SHOW_GRID_DURING_ANIM: false,
   SHOW_POIS: true,
   CRISP_ALIGN: true,
-  ANIM_DURATION_MS: 900,
+  ANIM_DURATION_MS: 1800, // Increased from 900ms to show both avatars walking together
   ANIM_IDLE: true,
 
   // Modo noche MANUAL (persistente)

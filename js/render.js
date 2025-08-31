@@ -1,4 +1,6 @@
 // js/render.js
+// Updated animation: Both avatars (Juan and Paula) now walk together when creating memories
+// Animation duration increased from 900ms to 1800ms for better visual experience
 import { CONFIG, tileSize } from "./config.js";
 import { clamp, easeInOut } from "./utils.js";
 import { gridW, gridH, seed, memories, setGridH, cellCenter } from "./state.js";
@@ -424,15 +426,23 @@ export function animateLastSegment() {
     }
 
     const a = polyline[progressIdx];
-    if (sprites.juan && sprites.juan.width) {
-      ctx.drawImage(
-        sprites.juan,
-        Math.round(a.x - 16),
-        Math.round(a.y - 16),
-        32,
-        32
-      );
+
+    // Draw both avatars walking together with slight offset
+    if (
+      sprites.juan &&
+      sprites.juan.width &&
+      sprites.paula &&
+      sprites.paula.width
+    ) {
+      // Draw Juan (boy) slightly behind and to the left with smooth bobbing animation
+      const juanBobOffset = Math.sin(tSec * 4) * 2;
+      ctx.drawImage(sprites.juan, a.x - 20, a.y - 16 + juanBobOffset, 32, 32);
+
+      // Draw Paula (girl) slightly ahead and to the right with smooth bobbing animation
+      const paulaBobOffset = Math.sin(tSec * 4 + Math.PI * 0.5) * 2;
+      ctx.drawImage(sprites.paula, a.x - 12, a.y - 16 + paulaBobOffset, 32, 32);
     } else {
+      // Fallback if sprites aren't loaded
       ctx.fillStyle = "#fff";
       ctx.beginPath();
       ctx.arc(Math.round(a.x), Math.round(a.y), 5, 0, Math.PI * 2);
