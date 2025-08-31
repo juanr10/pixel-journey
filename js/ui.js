@@ -103,8 +103,8 @@ export function initUI() {
     hideModal(modal);
   }
 
-  // ======= Integrar selector de imágenes en modal de añadir =======
-  function integrateImageSelectorInAddModal() {
+  // ======= Crear sistema de pestañas para modal de añadir =======
+  function createAddModalTabs() {
     const memorySystem = getMemorySystem();
     if (!memorySystem) {
       console.log("Sistema de memories no disponible para modal de añadir");
@@ -112,41 +112,48 @@ export function initUI() {
     }
 
     try {
-      // Crear contenedor para el selector de imágenes
-      const imageContainer = document.createElement("div");
-      imageContainer.className = "image-selector-container";
-      imageContainer.id = "add-image-selector-container";
+      // Crear contenedor de pestañas
+      const tabsContainer = document.createElement("div");
+      tabsContainer.className = "modal-tabs-container";
+      tabsContainer.id = "add-modal-tabs";
 
-      // Insertar después del campo de texto
-      const addTextContainer = addText.parentNode;
-      addTextContainer.parentNode.insertBefore(
-        imageContainer,
-        addTextContainer.nextSibling
-      );
+      // Insertar después del meta (Index y Date)
+      const modalInner = addModal.querySelector(".modalInner");
+      const meta = modalInner.querySelector("#addMeta");
+      modalInner.insertBefore(tabsContainer, meta.nextSibling);
 
-      // Crear el selector de imágenes directamente
-      addImageSelector = new ImageSelector(imageContainer, {
-        maxFiles: 5,
-        showPreview: true,
-        onImageSelect: (imageData) => {
-          console.log("Imagen seleccionada en modal de añadir:", imageData);
-        },
-        onImageRemove: (imageData) => {
-          console.log("Imagen eliminada en modal de añadir:", imageData);
-        },
-      });
+      // Crear HTML de pestañas
+      const tabsHTML = `
+        <div class="modal-tabs">
+          <button type="button" class="tab-button active" data-tab="basic">
+            📝 Basic Info
+          </button>
+          <button type="button" class="tab-button" data-tab="images">
+            📷 Photos
+          </button>
+        </div>
+        <div class="tab-content">
+          <div class="tab-pane active" id="add-basic-tab">
+            <!-- Los campos básicos se mantienen en su lugar original -->
+          </div>
+          <div class="tab-pane" id="add-images-tab" style="display: none;">
+            <div class="image-selector-container" id="add-image-selector-container" style="display: block; visibility: visible; opacity: 1;"></div>
+          </div>
+        </div>
+      `;
+      tabsContainer.innerHTML = tabsHTML;
 
-      console.log("Selector de imágenes integrado en modal de añadir");
+      // El ImageSelector se creará cuando se muestre la pestaña de imágenes
+
+      // Configurar eventos de pestañas
+      setupTabEvents(tabsContainer);
     } catch (error) {
-      console.error(
-        "Error integrando selector de imágenes en modal de añadir:",
-        error
-      );
+      console.error("Error creando pestañas en modal de añadir:", error);
     }
   }
 
-  // ======= Integrar selector de imágenes en modal de editar =======
-  function integrateImageSelectorInEditModal() {
+  // ======= Crear sistema de pestañas para modal de editar =======
+  function createEditModalTabs() {
     const memorySystem = getMemorySystem();
     if (!memorySystem) {
       console.log("Sistema de memories no disponible para modal de editar");
@@ -154,36 +161,43 @@ export function initUI() {
     }
 
     try {
-      // Crear contenedor para el selector de imágenes
-      const imageContainer = document.createElement("div");
-      imageContainer.className = "image-selector-container";
-      imageContainer.id = "edit-image-selector-container";
+      // Crear contenedor de pestañas
+      const tabsContainer = document.createElement("div");
+      tabsContainer.className = "modal-tabs-container";
+      tabsContainer.id = "edit-modal-tabs";
 
-      // Insertar después del campo de texto
-      const editTextContainer = editText.parentNode;
-      editTextContainer.parentNode.insertBefore(
-        imageContainer,
-        editTextContainer.nextSibling
-      );
+      // Insertar después del meta (ID)
+      const modalInner = modal.querySelector(".modalInner");
+      const meta = modalInner.querySelector("#idRow");
+      modalInner.insertBefore(tabsContainer, meta.nextSibling);
 
-      // Crear el selector de imágenes directamente
-      editImageSelector = new ImageSelector(imageContainer, {
-        maxFiles: 5,
-        showPreview: true,
-        onImageSelect: (imageData) => {
-          console.log("Imagen seleccionada en modal de editar:", imageData);
-        },
-        onImageRemove: (imageData) => {
-          console.log("Imagen eliminada en modal de editar:", imageData);
-        },
-      });
+      // Crear HTML de pestañas
+      const tabsHTML = `
+        <div class="modal-tabs">
+          <button type="button" class="tab-button active" data-tab="basic">
+            📝 Basic Info
+          </button>
+          <button type="button" class="tab-button" data-tab="images">
+            📷 Photos
+          </button>
+        </div>
+        <div class="tab-content">
+          <div class="tab-pane active" id="edit-basic-tab">
+            <!-- Los campos básicos se mantienen en su lugar original -->
+          </div>
+          <div class="tab-pane" id="edit-images-tab" style="display: none;">
+            <div class="image-selector-container" id="edit-image-selector-container" style="display: block; visibility: visible; opacity: 1;"></div>
+          </div>
+        </div>
+      `;
+      tabsContainer.innerHTML = tabsHTML;
 
-      console.log("Selector de imágenes integrado en modal de editar");
+      // El ImageSelector se creará cuando se muestre la pestaña de imágenes
+
+      // Configurar eventos de pestañas
+      setupTabEvents(tabsContainer);
     } catch (error) {
-      console.error(
-        "Error integrando selector de imágenes en modal de editar:",
-        error
-      );
+      console.error("Error creando pestañas en modal de editar:", error);
     }
   }
 
@@ -196,9 +210,38 @@ export function initUI() {
       memories.length
     } · Date: ${new Date().toLocaleString()}`;
 
-    // Limpiar selector de imágenes si existe
-    if (addImageSelector) {
-      addImageSelector.clearSelection();
+    // Resetear ImageSelector
+    addImageSelector = null;
+
+    // Resetear pestañas a "Basic Info"
+    const tabsContainer = addModal.querySelector("#add-modal-tabs");
+    if (tabsContainer) {
+      const tabButtons = tabsContainer.querySelectorAll(".tab-button");
+      const tabPanes = tabsContainer.querySelectorAll(".tab-pane");
+
+      // Activar pestaña básica
+      tabButtons.forEach((btn) => btn.classList.remove("active"));
+      tabPanes.forEach((pane) => {
+        pane.classList.remove("active");
+        pane.style.display = "none";
+      });
+
+      const basicButton = tabsContainer.querySelector('[data-tab="basic"]');
+      const basicPane = tabsContainer.querySelector("#add-basic-tab");
+      const imagesPane = tabsContainer.querySelector("#add-images-tab");
+
+      if (basicButton) basicButton.classList.add("active");
+      if (basicPane) {
+        basicPane.classList.add("active");
+        basicPane.style.display = "block";
+      }
+      if (imagesPane) {
+        imagesPane.style.display = "none";
+      }
+
+      // Mostrar campos básicos
+      const formRows = addModal.querySelectorAll(".formRow");
+      formRows.forEach((row) => (row.style.display = "flex"));
     }
 
     showModal(addModal);
@@ -310,24 +353,38 @@ export function initUI() {
     editText.value = m.text || "";
     editType.value = m.type;
 
-    // Cargar imágenes existentes si las hay
-    if (editImageSelector && m.images && m.images.length > 0) {
-      editImageSelector.clearSelection();
+    // Resetear ImageSelector
+    editImageSelector = null;
 
-      // Añadir imágenes existentes al selector
-      for (const image of m.images) {
-        const imageData = {
-          id: image.id,
-          filename: image.filename,
-          url: image.url,
-          size: image.metadata?.size || 0,
-          type: image.metadata?.type || "image/jpeg",
-          isExisting: true,
-        };
-        editImageSelector.addImage(imageData);
+    // Resetear pestañas a "Basic Info" en modal de editar
+    const tabsContainer = modal.querySelector("#edit-modal-tabs");
+    if (tabsContainer) {
+      const tabButtons = tabsContainer.querySelectorAll(".tab-button");
+      const tabPanes = tabsContainer.querySelectorAll(".tab-pane");
+
+      // Activar pestaña básica
+      tabButtons.forEach((btn) => btn.classList.remove("active"));
+      tabPanes.forEach((pane) => {
+        pane.classList.remove("active");
+        pane.style.display = "none";
+      });
+
+      const basicButton = tabsContainer.querySelector('[data-tab="basic"]');
+      const basicPane = tabsContainer.querySelector("#edit-basic-tab");
+      const imagesPane = tabsContainer.querySelector("#edit-images-tab");
+
+      if (basicButton) basicButton.classList.add("active");
+      if (basicPane) {
+        basicPane.classList.add("active");
+        basicPane.style.display = "block";
       }
-    } else if (editImageSelector) {
-      editImageSelector.clearSelection();
+      if (imagesPane) {
+        imagesPane.style.display = "none";
+      }
+
+      // Mostrar campos básicos
+      const formRows = modal.querySelectorAll(".formRow");
+      formRows.forEach((row) => (row.style.display = "flex"));
     }
 
     showModal(modal);
@@ -443,13 +500,111 @@ export function initUI() {
   });
   closeModalBtn.addEventListener("click", closeEditModal);
 
-  // ======= Inicializar sistema de memories y selectores de imágenes =======
+  // ======= Función para configurar eventos de pestañas =======
+  function setupTabEvents(tabsContainer) {
+    const tabButtons = tabsContainer.querySelectorAll(".tab-button");
+    const tabPanes = tabsContainer.querySelectorAll(".tab-pane");
+    const modal = tabsContainer.closest(".modal");
+
+    tabButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        const targetTab = button.getAttribute("data-tab");
+
+        // Remover clase active de todos los botones y paneles
+        tabButtons.forEach((btn) => btn.classList.remove("active"));
+        tabPanes.forEach((pane) => pane.classList.remove("active"));
+
+        // Activar el botón y panel seleccionado
+        button.classList.add("active");
+        const targetPane = tabsContainer.querySelector(
+          `#${tabsContainer.id.replace("-tabs", "")}-${targetTab}-tab`
+        );
+        if (targetPane) {
+          targetPane.classList.add("active");
+        }
+
+        // Mostrar/ocultar campos según la pestaña
+        const formRows = modal.querySelectorAll(".formRow");
+        if (targetTab === "basic") {
+          formRows.forEach((row) => (row.style.display = "flex"));
+        } else {
+          formRows.forEach((row) => (row.style.display = "none"));
+        }
+
+        // Manejar visibilidad de pestañas
+        modal.querySelectorAll(".tab-pane").forEach((pane) => {
+          if (pane.id.includes(targetTab)) {
+            pane.classList.add("active");
+            pane.style.display = "block";
+          } else {
+            pane.classList.remove("active");
+            pane.style.display = "none";
+          }
+        });
+
+        // Manejar visibilidad del contenedor de imágenes
+        if (targetTab === "images") {
+          const imageContainer = modal.querySelector(
+            ".image-selector-container"
+          );
+          if (imageContainer) {
+            // Forzar visibilidad del contenedor de imágenes
+            imageContainer.style.display = "block";
+            imageContainer.style.visibility = "visible";
+            imageContainer.style.opacity = "1";
+
+            // Determinar qué modal es y crear el ImageSelector correspondiente
+            const isAddModal = modal.id === "addModal";
+            const isEditModal = modal.id === "modal";
+
+            if (isAddModal && !addImageSelector) {
+              addImageSelector = new ImageSelector(imageContainer, {
+                maxFiles: 5,
+                showPreview: true,
+                onImageSelect: (imageData) => {
+                  console.log(
+                    "Imagen seleccionada en modal de añadir:",
+                    imageData
+                  );
+                },
+                onImageRemove: (imageData) => {
+                  console.log(
+                    "Imagen eliminada en modal de añadir:",
+                    imageData
+                  );
+                },
+              });
+            } else if (isEditModal && !editImageSelector) {
+              editImageSelector = new ImageSelector(imageContainer, {
+                maxFiles: 5,
+                showPreview: true,
+                onImageSelect: (imageData) => {
+                  console.log(
+                    "Imagen seleccionada en modal de editar:",
+                    imageData
+                  );
+                },
+                onImageRemove: (imageData) => {
+                  console.log(
+                    "Imagen eliminada en modal de editar:",
+                    imageData
+                  );
+                },
+              });
+            }
+          }
+        }
+      });
+    });
+  }
+
+  // ======= Inicializar sistema de memories y pestañas =======
   async function initializeMemorySystem() {
     try {
       await initMemorySystem();
-      console.log("Inicializando selectores de imágenes...");
-      integrateImageSelectorInAddModal();
-      integrateImageSelectorInEditModal();
+      console.log("Inicializando sistema de pestañas...");
+      createAddModalTabs();
+      createEditModalTabs();
     } catch (error) {
       console.error("Error inicializando sistema de memories:", error);
     }
