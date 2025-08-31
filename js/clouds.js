@@ -257,7 +257,12 @@ function makeNightCloudSprite(width, height, seedVal) {
 }
 
 export function initClouds(canvas) {
-  if (!CONFIG.CLOUDS) return;
+  if (!CONFIG.CLOUDS) {
+    console.log(
+      "🌤️ Clouds disabled - Mobile device detected for better performance"
+    );
+    return;
+  }
 
   // Generar nubes diurnas y nocturnas
   Clouds.spriteSmall = makeCloudSprite(32, 20, strToSeed("CLOUDS_SMALL"));

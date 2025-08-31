@@ -9,7 +9,7 @@ import { loadSprites } from "./sprites.js";
 import { loadTileset } from "./tiles.js";
 import { initUI } from "./ui.js";
 import { initClouds, bindScrollParallax } from "./clouds.js";
-import { recomputeTileSize, tileSize } from "./config.js";
+import { recomputeTileSize, tileSize, updateCloudsConfig } from "./config.js";
 import { setGridW } from "./state.js";
 
 function fitBoardDimensions() {
@@ -42,6 +42,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   ensureCapacity();
   drawMap();
   initUI();
+  // Las nubes se inicializan condicionalmente (desactivadas en móviles para mejor rendimiento)
   initClouds(canvas);
   bindScrollParallax();
   startIdleLoop();
@@ -50,6 +51,8 @@ window.addEventListener("DOMContentLoaded", async () => {
     fitBoardDimensions();
     ensureCapacity();
     drawMap();
+    // Actualizar configuración de nubes dinámicamente
+    updateCloudsConfig();
   });
 
   // Asegura que al cargar no "desaparezca" la casa por scroll previo

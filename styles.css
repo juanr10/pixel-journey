@@ -14,6 +14,7 @@ header {
   align-items:center;
   gap:20px;
   margin-bottom:20px;
+  position: static; /* Para que el switch se posicione relativo al body */
 }
 
 /* ====== Títulos ====== */
@@ -34,18 +35,20 @@ h1 {
 }
 
 /* ====== Barra de controles ====== */
-.controlBar {
-  width:100%;
-  display:flex; align-items:center; justify-content:center;
-  gap:16px; flex-wrap:wrap;
-}
+  .controlBar {
+    width:100%;
+    display:flex; align-items:center; justify-content:center;
+    gap:16px;
+  }
 .controlBar > .btn-8bit { min-width: 210px; }
 
-/* ====== Switch noche manual ☀️ 🌙 ====== */
-.nightSwitch {
-  position:relative; display:flex; align-items:center; gap:10px; user-select:none; cursor:pointer;
-  --track-w: 76px; --track-h: 34px; --knob: 28px;
-}
+  /* ====== Switch noche manual ☀️ 🌙 ====== */
+  .nightSwitch {
+    position:absolute; top:20px; right:20px;
+    display:flex; align-items:center; gap:10px; user-select:none; cursor:pointer;
+    --track-w: 76px; --track-h: 34px; --knob: 28px;
+    z-index: 10; /* Asegurar que esté por encima */
+  }
 .nightSwitch input { display:none; }
 .nightSwitch .icon { font-size:18px; line-height:1; }
 .nightSwitch .track {
