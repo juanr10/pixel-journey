@@ -137,6 +137,7 @@ export function initUI() {
         game: "Video game 🎮",
         love: "Romantic ❤️",
         camera: "Memory 📸",
+        museo: "Museum / Monument 🏛️",
       }[m.type] ?? "Memory";
 
     titleEl.textContent = m.title || fallback;

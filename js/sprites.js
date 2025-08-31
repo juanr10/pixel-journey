@@ -7,6 +7,7 @@ export const spriteUrls = {
   game: "./assets/sprites/memories/game.png",
   love: "./assets/sprites/memories/love.png",
   camera: "./assets/sprites/memories/camera.png",
+  museo: "./assets/sprites/memories/museo.png",
 };
 
 export const sprites = {};

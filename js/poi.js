@@ -27,6 +27,7 @@ export function drawPOIAtCell(ctx, cellX, cellY, type, tSec = 0) {
       game: "#7ad2ff",
       love: "#ff99c8",
       camera: "#f0e3b5",
+      museo: "#8b5a2b",
     }[type] || "#f0e3b5";
   ctx.fillStyle = c;
   ctx.fillRect(-4, -4, 8, 8);
