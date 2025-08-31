@@ -217,11 +217,13 @@ function drawHouseAndAvatars(tSec = 0) {
     );
   }
 }
-function drawIconScaled(img, cx, cy, baseSize, scale = 1) {
+function drawIconScaled(img, cx, cy, baseSize, scale = 1, memoryType = null) {
   const w = Math.round(baseSize * scale);
   const h = Math.round(baseSize * scale);
   const dx = Math.round(cx - w / 2);
   const dy = Math.round(cy - h / 2);
+
+  // Dibujar sombra del icono primero (para que esté detrás de todo)
   ctx.save();
   ctx.globalAlpha = 0.22;
   ctx.fillStyle = "#2b3a1f";
@@ -237,6 +239,22 @@ function drawIconScaled(img, cx, cy, baseSize, scale = 1) {
   );
   ctx.fill();
   ctx.restore();
+
+  // Dibujar halo transparente redondo con el color del POI (después de la sombra, antes del icono)
+  if (memoryType) {
+    const haloColor = "#d3d3d3"; // Gris claro pastel para todos los halos
+    const haloRadius = Math.max(w, h) * 0.65; // Radio del halo (65% del tamaño del icono para que sea un poco más pequeño)
+
+    ctx.save();
+    ctx.globalAlpha = 0.45; // Aumentar transparencia para que se vean más los halos
+    ctx.fillStyle = haloColor;
+    ctx.beginPath();
+    ctx.arc(Math.round(cx), Math.round(cy), haloRadius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Dibujar el icono al final (encima de todo)
   ctx.drawImage(img, dx, dy, w, h);
 }
 
@@ -324,7 +342,7 @@ function drawIcons(waypoints, uptoIdx = waypoints.length - 1, tSec = 0) {
     const bob = Math.round(Math.sin(tSec * 2 + k * 0.7) * 2);
     const cx = w.x * tileSize + 8 + baseSize / 2;
     const cy = w.y * tileSize + 8 + baseSize / 2 + bob;
-    drawIconScaled(icon, cx, cy, baseSize, 1);
+    drawIconScaled(icon, cx, cy, baseSize, 1, m.type);
     drawPOIAtCell(ctx, w.x, w.y, m.type, tSec);
 
     // Draw date tag next to the memory icon
@@ -558,7 +576,7 @@ export function animateLastSegment() {
         const popPhase = clamp((prog - 0.7) / 0.3, 0, 1);
         scale = 0.9 + 0.1 * easeInOut(popPhase);
       }
-      drawIconScaled(icon, cx, cy, baseSize, scale);
+      drawIconScaled(icon, cx, cy, baseSize, scale, m.type);
       drawPOIAtCell(ctx, w.x, w.y, m.type, tSec);
 
       // Draw date tag next to the memory icon
