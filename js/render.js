@@ -248,6 +248,82 @@ function drawIconScaled(img, cx, cy, baseSize, scale = 1) {
   ctx.restore();
   ctx.drawImage(img, dx, dy, w, h);
 }
+
+function drawDateTag(cx, cy, baseSize, createdAt) {
+  try {
+    const date = new Date(createdAt);
+
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      return; // Skip drawing if date is invalid
+    }
+
+    const day = date.getDate();
+    const month = date.getMonth() + 1;
+
+    // Format: DD/MM (e.g., "15/03")
+    const dateText = `${day.toString().padStart(2, "0")}/${month
+      .toString()
+      .padStart(2, "0")}`;
+
+    // Tag dimensions (must be declared before using in position calculations)
+    const tagWidth = 64;
+    const tagHeight = 24;
+
+    // Position the tag to the right and slightly above the icon (moved further right)
+    let tagX = cx + baseSize * 0.8;
+    let tagY = cy - baseSize * 0.5;
+
+    // Adjust position if tag would go off-screen
+    if (tagX + tagWidth > canvas.width) {
+      tagX = cx - baseSize * 0.8 - tagWidth; // Move to left side
+    }
+    if (tagY < 0) {
+      tagY = cy + baseSize * 0.5; // Move below icon
+    }
+
+    // Draw pixel art style tag background
+    ctx.save();
+
+    // Shadow for better visibility
+    ctx.fillStyle = "rgba(0,0,0,0.3)";
+    ctx.fillRect(
+      Math.round(tagX + 1),
+      Math.round(tagY + 1),
+      tagWidth,
+      tagHeight
+    );
+
+    // Main tag background (pixelated rectangle)
+    ctx.fillStyle = "#2b3a1f";
+    ctx.fillRect(Math.round(tagX), Math.round(tagY), tagWidth, tagHeight);
+
+    // Tag border (pixelated outline)
+    ctx.strokeStyle = "#4a5a3f";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(Math.round(tagX), Math.round(tagY), tagWidth, tagHeight);
+
+    // Inner highlight (pixelated)
+    ctx.fillStyle = "#5a6a4f";
+    ctx.fillRect(Math.round(tagX + 1), Math.round(tagY + 1), tagWidth - 2, 2);
+
+    // Text
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "10px 'Press Start 2P', monospace";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(
+      dateText,
+      Math.round(tagX + tagWidth / 2),
+      Math.round(tagY + tagHeight / 2)
+    );
+
+    ctx.restore();
+  } catch (error) {
+    // Silently skip drawing date tag if there's an error
+    console.warn("Error drawing date tag:", error);
+  }
+}
 function drawIcons(waypoints, uptoIdx = waypoints.length - 1, tSec = 0) {
   const baseSize = Math.round(tileSize * 0.73);
   for (let k = 0; k <= uptoIdx && k < waypoints.length; k++) {
@@ -259,6 +335,11 @@ function drawIcons(waypoints, uptoIdx = waypoints.length - 1, tSec = 0) {
     const cy = w.y * tileSize + 8 + baseSize / 2 + bob;
     drawIconScaled(icon, cx, cy, baseSize, 1);
     drawPOIAtCell(ctx, w.x, w.y, m.type, tSec);
+
+    // Draw date tag next to the memory icon
+    if (m.createdAt) {
+      drawDateTag(cx, cy, baseSize, m.createdAt);
+    }
   }
 }
 
@@ -488,6 +569,11 @@ export function animateLastSegment() {
       }
       drawIconScaled(icon, cx, cy, baseSize, scale);
       drawPOIAtCell(ctx, w.x, w.y, m.type, tSec);
+
+      // Draw date tag next to the memory icon
+      if (m.createdAt) {
+        drawDateTag(cx, cy, baseSize, m.createdAt);
+      }
     }
 
     // Get current and next polyline points for smooth interpolation

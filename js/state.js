@@ -16,6 +16,15 @@ if (!seed) {
 
 export let memories = JSON.parse(localStorage.getItem("memories") || "[]");
 
+// Migration: Add createdAt field to existing memories if missing
+memories.forEach((memory, index) => {
+  if (!memory.createdAt) {
+    // For existing memories without date, use a default date (current time)
+    // This ensures all memories have a date tag
+    memory.createdAt = new Date().toISOString();
+  }
+});
+
 export function setMemories(arr) {
   memories = arr;
   localStorage.setItem("memories", JSON.stringify(memories));
