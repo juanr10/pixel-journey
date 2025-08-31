@@ -5,7 +5,7 @@ import { gridW, gridH, seed, memories, setGridH, cellCenter } from "./state.js";
 import { drawTiles } from "./tiles.js";
 import { sprites } from "./sprites.js";
 import { drawPOIAtCell } from "./poi.js";
-import { computeWaypointsAndPolyline } from "./path.js";
+import { computeWaypointsAndPolyline, HOUSE_COL, HOUSE_ROW } from "./path.js";
 import { spawnSparkles, updateAndDrawSparkles } from "./particles.js";
 import { updateClouds, drawClouds } from "./clouds.js";
 
@@ -83,10 +83,13 @@ function cellFromPoint(p) {
 }
 function buildNoWaterMask(polyline, waypoints) {
   const mask = new Set();
-  // House + avatars (first row)
-  mask.add(`0,0`);
-  mask.add(`1,0`);
-  mask.add(`2,0`);
+
+  // Casa + avatares en primera fila (desplazados por padding)
+  mask.add(`${HOUSE_COL},${HOUSE_ROW}`);
+  mask.add(`${HOUSE_COL + 1},${HOUSE_ROW}`);
+  mask.add(`${HOUSE_COL + 2},${HOUSE_ROW}`);
+
+  // Camino (un halo 3x3 alrededor de cada punto de la polilínea)
   for (const p of polyline) {
     const { gx, gy } = cellFromPoint(p);
     for (let dx = -1; dx <= 1; dx++) {
@@ -95,17 +98,18 @@ function buildNoWaterMask(polyline, waypoints) {
       }
     }
   }
+  // Waypoints (recuerdos)
   for (const w of waypoints) mask.add(`${w.x},${w.y}`);
   return mask;
 }
 
-// ========= Dynamic layout (forzar alto grande siempre) =========
+// ========= Dynamic layout (mínimo alto grande y estable) =========
 export function ensureCapacity() {
   const { waypoints } = computeWaypointsAndPolyline(memories, seed, gridW);
   const lastY = waypoints.length ? waypoints[waypoints.length - 1].y : 0;
 
-  // 🔧 mínimo fijo muy alto: ajusta si quieres más/menos
-  const MIN_FORCED_ROWS = 40; // 40 * tileSize (50px) ≈ 2000px de alto
+  // Mínimo alto forzado (para que en móvil siempre “llene”)
+  const MIN_FORCED_ROWS = 40;
   const targetRows = Math.max(MIN_FORCED_ROWS, lastY + 6);
 
   setGridH(targetRows);
@@ -116,15 +120,22 @@ export function ensureCapacity() {
 function drawHouseAndAvatars(tSec = 0) {
   const bobJuan = Math.round(Math.sin(tSec * 2.0) * 2);
   const bobPaula = Math.round(Math.sin(tSec * 2.0 + Math.PI / 2) * 2);
-  ctx.drawImage(sprites.house, 0, 0, tileSize, tileSize);
+
+  // Coordenadas en píxeles con padding aplicado
+  const houseX = HOUSE_COL * tileSize;
+  const houseY = HOUSE_ROW * tileSize;
+
+  ctx.drawImage(sprites.house, houseX, houseY, tileSize, tileSize);
+
   if (gridW >= 3) {
+    // sombras bajo sprites
     ctx.save();
     ctx.globalAlpha = 0.25;
     ctx.fillStyle = "#2b3a1f";
     ctx.beginPath();
     ctx.ellipse(
-      tileSize * 1.5,
-      tileSize * 0.93,
+      houseX + tileSize * 1.5,
+      houseY + tileSize * 0.93,
       tileSize * 0.28,
       tileSize * 0.1,
       0,
@@ -134,8 +145,8 @@ function drawHouseAndAvatars(tSec = 0) {
     ctx.fill();
     ctx.beginPath();
     ctx.ellipse(
-      tileSize * 2.5,
-      tileSize * 0.93,
+      houseX + tileSize * 2.5,
+      houseY + tileSize * 0.93,
       tileSize * 0.28,
       tileSize * 0.1,
       0,
@@ -145,11 +156,18 @@ function drawHouseAndAvatars(tSec = 0) {
     ctx.fill();
     ctx.restore();
 
-    ctx.drawImage(sprites.juan, tileSize, 0 + bobJuan, tileSize, tileSize);
+    // avatares a la derecha de la casa
+    ctx.drawImage(
+      sprites.juan,
+      houseX + tileSize,
+      houseY + bobJuan,
+      tileSize,
+      tileSize
+    );
     ctx.drawImage(
       sprites.paula,
-      tileSize * 2,
-      0 + bobPaula,
+      houseX + tileSize * 2,
+      houseY + bobPaula,
       tileSize,
       tileSize
     );

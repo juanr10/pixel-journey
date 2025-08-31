@@ -1,29 +1,46 @@
-import { tileSize, CONFIG } from "./config.js";
-import { clamp, randIntSeeded, randSignSeeded, seeded } from "./utils.js";
-import { houseCol, houseRow, minX } from "./state.js";
+// js/path.js
+import { clamp, seeded, randIntSeeded, randSignSeeded } from "./utils.js";
+import { cellCenter } from "./state.js";
 
+// === Padding perimetral de 1 casilla ===
+export const HOUSE_COL = 1; // antes 0
+export const HOUSE_ROW = 1; // antes 0
+
+/**
+ * Genera los waypoints (celdas de recuerdos) y la polilínea del camino.
+ * - Comienza en la casa (HOUSE_COL, HOUSE_ROW)
+ * - Primer paso: se desplaza 1 casilla a la derecha (aire entre casa y camino)
+ * - Siempre respeta 1 casilla de margen en izquierda y derecha
+ */
 export function computeWaypointsAndPolyline(memories, seed, gridW) {
-  const waypoints = [],
-    polyline = [];
-  let curX = houseCol,
-    curY = houseRow;
-  if (gridW > 1) curX = 1;
+  const minX = 1; // margen izquierdo
+  const maxX = gridW - 2; // margen derecho
 
-  polyline.push(cellCenter(houseCol, houseRow));
-  polyline.push(cellCenter(curX, curY));
+  const waypoints = [];
+  const polyline = [];
 
-  const minx = minX,
-    maxx = gridW - 2;
+  // punto de partida: casa
+  let curX = HOUSE_COL;
+  let curY = HOUSE_ROW;
 
+  // empuje inicial a la derecha (un paso de aire sobre la casa)
+  const startX = clamp(HOUSE_COL + 1, minX, maxX);
+  polyline.push(cellCenter(HOUSE_COL, HOUSE_ROW));
+  polyline.push(cellCenter(startX, curY));
+  curX = startX;
+
+  // para cada memoria, descendemos 2-3 filas con serpenteos controlados
   for (let i = 0; i < memories.length; i++) {
     const rows = randIntSeeded(2, 3, seed, 1000 + i);
+
+    // objetivo lateral “distante”, con signo aleatorio, pero acotado por min/max
     const lateral =
       randIntSeeded(1, 8, seed, 2000 + i) * randSignSeeded(seed, 3000 + i);
-    let targetX = clamp(curX + lateral, minx, maxx);
+    let targetX = clamp(curX + lateral, minX, maxX);
 
-    // 👇 Determinista: SIN Math.random()
+    // pequeños “wiggles” por fila (izq/dcha/pause) para dar vida al camino
     const wiggles = Array.from({ length: rows }, (_, s) => {
-      const r = seeded(seed, (i + 1) * 4000 + s * 97);
+      const r = seeded(seed, (i + 1) * 4000 + s);
       return r < 0.18 ? -1 : r > 0.82 ? 1 : 0;
     });
 
@@ -31,40 +48,16 @@ export function computeWaypointsAndPolyline(memories, seed, gridW) {
     for (let step = 1; step <= rows; step++) {
       const y = curY + step;
       const toward = Math.sign(targetX - nextX);
-      if (toward !== 0) nextX = clamp(nextX + toward, minx, maxx);
-      nextX = clamp(nextX + wiggles[step - 1], minx, maxx);
+      if (toward !== 0) nextX = clamp(nextX + toward, minX, maxX);
+      nextX = clamp(nextX + wiggles[step - 1], minX, maxX);
       polyline.push(cellCenter(nextX, y));
     }
+
     curX = nextX;
     curY += rows;
+
     waypoints.push({ x: curX, y: curY, idx: i });
   }
+
   return { waypoints, polyline };
-}
-
-export function drawPath(ctx, polyline, uptoIndex = polyline.length - 1) {
-  if (polyline.length < 2) return;
-  uptoIndex = Math.max(1, Math.min(uptoIndex, polyline.length - 1));
-  ctx.lineCap = "round";
-  ctx.lineJoin = "round";
-
-  ctx.beginPath();
-  ctx.moveTo(Math.round(polyline[0].x), Math.round(polyline[0].y));
-  for (let i = 1; i <= uptoIndex; i++)
-    ctx.lineTo(Math.round(polyline[i].x), Math.round(polyline[i].y));
-  ctx.strokeStyle = "#c2b280";
-  ctx.lineWidth = 22;
-  ctx.stroke();
-
-  ctx.beginPath();
-  ctx.moveTo(Math.round(polyline[0].x), Math.round(polyline[0].y));
-  for (let i = 1; i <= uptoIndex; i++)
-    ctx.lineTo(Math.round(polyline[i].x), Math.round(polyline[i].y));
-  ctx.strokeStyle = "#e8d7a5";
-  ctx.lineWidth = 10;
-  ctx.stroke();
-}
-
-export function cellCenter(x, y) {
-  return { x: x * tileSize + tileSize / 2, y: y * tileSize + tileSize / 2 };
 }

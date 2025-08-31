@@ -5,7 +5,7 @@ body {
   background:#222; color:#fff;
   font-family: 'VT323', monospace; /* tipografía retro legible */
   display:flex; flex-direction:column; align-items:center;
-  margin:0; padding:20px;
+  margin:0; padding:16px; /* antes 20px → menos negro alrededor */
 }
 
 header {
@@ -68,7 +68,7 @@ h1 {
 .boardWrap {
   width:100%;
   display:flex; justify-content:center;
-  padding: 12px 16px 24px;
+  padding: 8px 10px 14px; /* antes 12px 16px 24px → menos negro interno */
   margin: 0 auto;
   max-width: 95vw;
   background: #1b1b1b;
@@ -78,7 +78,7 @@ h1 {
 
 canvas {
   background:#4caf50;
-  margin-top:24px;
+  margin-top:10px; /* antes 24px → acerca más el canvas al wrapper */
   border-radius:12px;
   cursor:pointer;
   display:block;
@@ -220,7 +220,8 @@ body.no-scroll { overflow:hidden; }
 
 /* ====== Responsive ====== */
 @media (max-width: 520px) {
+  body { padding:12px; } /* menos negro en móviles aún */
   .controlBar { gap:10px; }
   .controlBar > .btn-8bit { width:100%; }
-  .boardWrap { padding: 10px 12px 18px; }
+  .boardWrap { padding: 8px 10px 14px; } /* consistente con desktop reducido */
 }
