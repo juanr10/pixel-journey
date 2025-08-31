@@ -19,11 +19,17 @@ function makeCloudSprite(width, height, seedVal) {
 
   const rnd = mulberry32(seedVal >>> 0);
 
-  // Colores base para las nubes
+  // Colores base para las nubes (más apropiados para modo nocturno)
   const cloudWhite = "#ffffff";
   const cloudLight = "#f8f8f8";
   const cloudShadow = "#e8e8e8";
   const cloudDark = "#d8d8d8";
+
+  // Colores nocturnos para las nubes
+  const nightCloudWhite = "#e8e8e8";
+  const nightCloudLight = "#d0d0d0";
+  const nightCloudShadow = "#b8b8b8";
+  const nightCloudDark = "#a0a0a0";
 
   // Limpiar canvas
   cx.clearRect(0, 0, offHR.width, offHR.height);
@@ -130,10 +136,144 @@ function makeCloudSprite(width, height, seedVal) {
   return off;
 }
 
+// Función para crear nubes con colores nocturnos
+function makeNightCloudSprite(width, height, seedVal) {
+  const hiResScale = 4;
+  const offHR = document.createElement("canvas");
+  offHR.width = width * hiResScale;
+  offHR.height = height * hiResScale;
+  const cx = offHR.getContext("2d", { willReadFrequently: true });
+  cx.imageSmoothingEnabled = true;
+
+  const rnd = mulberry32(seedVal >>> 0);
+
+  // Colores nocturnos para las nubes (más oscuros y sutiles)
+  const cloudWhite = "#e8e8e8";
+  const cloudLight = "#d0d0d0";
+  const cloudShadow = "#b8b8b8";
+  const cloudDark = "#a0a0a0";
+
+  // Limpiar canvas
+  cx.clearRect(0, 0, offHR.width, offHR.height);
+
+  // Crear nube base con forma más orgánica
+  const centerX = offHR.width * 0.5;
+  const centerY = offHR.height * 0.6;
+
+  // Número de lóbulos principales
+  const mainLobes = 3 + Math.floor(rnd() * 3);
+  const secondaryLobes = 2 + Math.floor(rnd() * 2);
+
+  // Lóbulos principales
+  for (let i = 0; i < mainLobes; i++) {
+    const angle = (i / mainLobes) * Math.PI * 1.8 - Math.PI * 0.9;
+    const distance = offHR.height * (0.25 + rnd() * 0.15);
+    const radius = offHR.height * (0.18 + rnd() * 0.12);
+
+    const x = centerX + Math.cos(angle) * distance;
+    const y = centerY + Math.sin(angle) * distance * 0.3;
+
+    // Crear lóbulo principal con gradiente
+    const gradient = cx.createRadialGradient(x, y, 0, x, y, radius);
+    gradient.addColorStop(0, cloudWhite);
+    gradient.addColorStop(0.7, cloudLight);
+    gradient.addColorStop(1, cloudShadow);
+
+    cx.fillStyle = gradient;
+    cx.beginPath();
+    cx.arc(x, y, radius, 0, Math.PI * 2);
+    cx.fill();
+  }
+
+  // Lóbulos secundarios
+  for (let i = 0; i < secondaryLobes; i++) {
+    const angle = (i / secondaryLobes) * Math.PI * 2 + rnd() * Math.PI * 0.5;
+    const distance = offHR.height * (0.35 + rnd() * 0.2);
+    const radius = offHR.height * (0.12 + rnd() * 0.08);
+
+    const x = centerX + Math.cos(angle) * distance;
+    const y = centerY + Math.sin(angle) * distance * 0.4;
+
+    cx.fillStyle = cloudLight;
+    cx.beginPath();
+    cx.arc(x, y, radius, 0, Math.PI * 2);
+    cx.fill();
+  }
+
+  // Lóbulos de relleno
+  for (let i = 0; i < 4; i++) {
+    const x = centerX + (rnd() - 0.5) * offHR.width * 0.6;
+    const y = centerY + (rnd() - 0.5) * offHR.height * 0.4;
+    const radius = offHR.height * (0.08 + rnd() * 0.06);
+
+    if (
+      Math.abs(x - centerX) < offHR.width * 0.4 &&
+      Math.abs(y - centerY) < offHR.height * 0.3
+    ) {
+      cx.fillStyle = cloudLight;
+      cx.beginPath();
+      cx.arc(x, y, radius, 0, Math.PI * 2);
+      cx.fill();
+    }
+  }
+
+  // Sombreado inferior más sutil para modo nocturno
+  const shadowGradient = cx.createLinearGradient(0, centerY, 0, offHR.height);
+  shadowGradient.addColorStop(0, "rgba(0,0,0,0)");
+  shadowGradient.addColorStop(0.5, "rgba(0,0,0,0.08)");
+  shadowGradient.addColorStop(1, "rgba(0,0,0,0.15)");
+
+  cx.globalCompositeOperation = "multiply";
+  cx.fillStyle = shadowGradient;
+  cx.fillRect(0, centerY, offHR.width, offHR.height - centerY);
+  cx.globalCompositeOperation = "source-over";
+
+  // Detalles finos
+  const detailPixels = 8 + Math.floor(rnd() * 6);
+  for (let i = 0; i < detailPixels; i++) {
+    const x = Math.floor(rnd() * offHR.width);
+    const y = Math.floor(rnd() * offHR.height * 0.7);
+    const size = 1 + Math.floor(rnd() * 2);
+
+    const imageData = cx.getImageData(x, y, 1, 1);
+    const brightness =
+      (imageData.data[0] + imageData.data[1] + imageData.data[2]) / 3;
+
+    if (brightness > 180) {
+      cx.fillStyle = rnd() > 0.5 ? cloudWhite : cloudLight;
+      cx.fillRect(x, y, size, size);
+    }
+  }
+
+  // Reducir a resolución final
+  const off = document.createElement("canvas");
+  off.width = width;
+  off.height = height;
+  const c2 = off.getContext("2d");
+  c2.imageSmoothingEnabled = false;
+  c2.drawImage(offHR, 0, 0, off.width, off.height);
+
+  return off;
+}
+
 export function initClouds(canvas) {
   if (!CONFIG.CLOUDS) return;
-  Clouds.spriteSmall = makeCloudSprite(32, 20, strToSeed("CLOUDS_SMALL")); // Ajustado tamaño
-  Clouds.spriteBig = makeCloudSprite(48, 24, strToSeed("CLOUDS_BIG")); // Ajustado tamaño
+
+  // Generar nubes diurnas y nocturnas
+  Clouds.spriteSmall = makeCloudSprite(32, 20, strToSeed("CLOUDS_SMALL"));
+  Clouds.spriteBig = makeCloudSprite(48, 24, strToSeed("CLOUDS_BIG"));
+
+  // Nubes nocturnas (más oscuras y sutiles)
+  Clouds.nightSpriteSmall = makeNightCloudSprite(
+    32,
+    20,
+    strToSeed("CLOUDS_NIGHT_SMALL")
+  );
+  Clouds.nightSpriteBig = makeNightCloudSprite(
+    48,
+    24,
+    strToSeed("CLOUDS_NIGHT_BIG")
+  );
 
   const w = canvas.width,
     h = canvas.height;
@@ -214,7 +354,9 @@ export function updateClouds(dt, canvas) {
 export function drawClouds(ctx, tSec) {
   if (!CONFIG.CLOUDS || !Clouds.ready) return;
   const nightness = CONFIG.IS_NIGHT ? 1 : 0;
-  const dayAlpha = clamp(1 - nightness * 1.6, 0, 1);
+
+  // Modificado: las nubes ahora son visibles de noche pero más oscuras
+  const dayAlpha = clamp(1 - nightness * 0.4, 0.6, 1); // Mínimo 0.6 en lugar de 0
 
   const prevSmooth = ctx.imageSmoothingEnabled;
   ctx.imageSmoothingEnabled = false; // Mantener pixel art nítido
@@ -245,9 +387,18 @@ export function drawClouds(ctx, tSec) {
       ctx.fillRect(dx + 2, dy + 2, dw, dh);
       ctx.restore();
 
-      // Dibujar nube principal
+      // Dibujar nube principal (usar sprite nocturno si es de noche)
       ctx.globalAlpha = finalAlpha;
-      ctx.drawImage(c.sprite, dx, dy, dw, dh);
+      if (CONFIG.IS_NIGHT) {
+        // Usar sprites nocturnos apropiados
+        const nightSprite =
+          c.sprite === Clouds.spriteSmall
+            ? Clouds.nightSpriteSmall
+            : Clouds.nightSpriteBig;
+        ctx.drawImage(nightSprite, dx, dy, dw, dh);
+      } else {
+        ctx.drawImage(c.sprite, dx, dy, dw, dh);
+      }
     });
   });
 
