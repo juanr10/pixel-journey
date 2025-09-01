@@ -378,7 +378,7 @@ export class PersistenceAdapter {
     return await this.activeAdapter.uploadImage(file, memoryId);
   }
 
-  async deleteImage(imageId) {
+  async deleteImage(imageId, memoryId = null) {
     if (!this.activeAdapter) {
       throw new Error("No hay adaptador activo");
     }
@@ -387,7 +387,7 @@ export class PersistenceAdapter {
       throw new Error("El adaptador activo no soporta eliminación de imágenes");
     }
 
-    return await this.activeAdapter.deleteImage(imageId);
+    return await this.activeAdapter.deleteImage(imageId, memoryId);
   }
 
   // Callbacks

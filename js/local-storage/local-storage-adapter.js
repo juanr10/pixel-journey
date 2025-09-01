@@ -235,7 +235,7 @@ export class LocalStorageAdapter {
   }
 
   // Eliminar imagen
-  async deleteImage(imageId) {
+  async deleteImage(imageId, memoryId = null) {
     try {
       // Buscar memory que contenga la imagen
       const memoryIndex = this.memories.findIndex(

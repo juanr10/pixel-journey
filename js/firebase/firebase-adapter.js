@@ -192,7 +192,7 @@ export class FirebaseAdapter {
       const memory = await this.getMemoryById(memoryId);
       if (memory && memory.images) {
         for (const image of memory.images) {
-          await this.deleteImage(image.id);
+          await this.deleteImage(image.id, memoryId);
         }
       }
 
@@ -263,17 +263,58 @@ export class FirebaseAdapter {
   }
 
   // Eliminar imagen
-  async deleteImage(imageId) {
+  async deleteImage(imageId, memoryId = null) {
     try {
       const { ref, deleteObject } = this.storageFunctions;
-      const imageRef = ref(this.storage, `memories/${imageId}`);
+
+      // Si no se proporciona memoryId, intentar encontrarlo
+      if (!memoryId) {
+        memoryId = await this.findMemoryIdByImageId(imageId);
+        if (!memoryId) {
+          throw new Error(
+            `No se pudo encontrar el memoryId para la imagen: ${imageId}`
+          );
+        }
+      }
+
+      const imageRef = ref(this.storage, `memories/${memoryId}/${imageId}`);
       await deleteObject(imageRef);
 
-      console.log("Image deleted from Firebase:", imageId);
+      console.log(
+        "Image deleted from Firebase:",
+        imageId,
+        "from memory:",
+        memoryId
+      );
     } catch (error) {
       console.error("Error deleting image from Firebase:", error);
       this.notifyError(error);
       throw error;
+    }
+  }
+
+  // Buscar memoryId basado en imageId
+  async findMemoryIdByImageId(imageId) {
+    try {
+      const { collection, query, where, getDocs } = this.firestoreFunctions;
+
+      // Buscar en todos los memories que tengan esta imagen
+      const memoriesRef = collection(this.db, "memories");
+      const q = query(
+        memoriesRef,
+        where("images", "array-contains", { id: imageId })
+      );
+      const querySnapshot = await getDocs(q);
+
+      if (!querySnapshot.empty) {
+        const memoryDoc = querySnapshot.docs[0];
+        return memoryDoc.id;
+      }
+
+      return null;
+    } catch (error) {
+      console.error("Error finding memoryId by imageId:", error);
+      return null;
     }
   }
 

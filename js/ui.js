@@ -473,7 +473,7 @@ export function initUI() {
             );
             for (const deletedImage of deletedImages) {
               try {
-                await memorySystem.deleteImage(deletedImage.id);
+                await memorySystem.deleteImage(deletedImage.id, memory.id);
                 console.log(
                   `Imagen eliminada del cloud: ${deletedImage.filename}`
                 );
@@ -740,10 +740,14 @@ export function initUI() {
                     imageData
                   );
                   // Si es una imagen existente, eliminarla del storage
+                  // Nota: En el modal de añadir no debería haber imágenes existentes,
+                  // pero mantenemos este código defensivo por si acaso
                   if (imageData.isExisting && imageData.id) {
                     try {
                       const memorySystem = getMemorySystem();
                       if (memorySystem) {
+                        // No pasamos memoryId porque no lo tenemos en el modal de añadir
+                        // El adaptador de Firebase buscará automáticamente el memoryId
                         await memorySystem.deleteImage(imageData.id);
                         console.log(
                           "Imagen eliminada del storage:",
