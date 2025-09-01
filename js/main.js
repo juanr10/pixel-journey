@@ -112,9 +112,7 @@ window.addEventListener("DOMContentLoaded", async () => {
     console.error("Error during app initialization:", error);
     loadingScreen.updateProgress("Error loading application");
     // Ocultar pantalla de carga incluso si hay error
-    setTimeout(() => {
-      loadingScreen.hide();
-      navigation.transitionFromLoading();
-    }, 2000);
+    loadingScreen.hide();
+    navigation.transitionFromLoading();
   }
 });

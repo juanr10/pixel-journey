@@ -24,8 +24,7 @@ body.navigation-active .modal {
 }
 
 .navigation-overlay.hidden {
-  opacity: 0;
-  visibility: hidden;
+  display: none !important;
 }
 
 /* Efecto fade-in cinematográfico */
@@ -67,6 +66,8 @@ body.navigation-active .modal {
 .app-loading-screen.hidden {
   opacity: 0;
   visibility: hidden;
+  pointer-events: none;
+  display: none !important;
 }
 
 .app-loading-title {

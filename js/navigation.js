@@ -1,97 +1,62 @@
 // js/navigation.js
-// Manejo de navegación entre pantallas
+// Navegación SIMPLE - Solo mostrar/ocultar pantallas
 
 export class NavigationManager {
   constructor() {
-    this.currentScreen = "loading";
+    console.log("NavigationManager constructor called");
     this.screens = {
       loading: document.getElementById("appLoadingScreen"),
       mainMenu: document.getElementById("mainMenuScreen"),
       loadGame: document.getElementById("loadGameScreen"),
     };
-
+    console.log("Screens found:", this.screens);
     this.init();
   }
 
   init() {
-    // Event listeners para el menú principal
+    console.log("NavigationManager init() called");
+    // Load Game button
     const loadGameBtn = document.getElementById("loadGameBtn");
-    const newGameBtn = document.getElementById("newGameBtn");
-    const exitBtn = document.getElementById("exitBtn");
-
+    console.log("loadGameBtn element:", loadGameBtn);
     if (loadGameBtn) {
-      loadGameBtn.addEventListener("click", () => this.showLoadGameScreen());
+      loadGameBtn.onclick = () => {
+        console.log("Load Game button clicked!");
+        this.screens.mainMenu.classList.add("hidden");
+        this.screens.loadGame.classList.remove("hidden");
+      };
+    } else {
+      console.error("loadGameBtn element not found!");
     }
 
-    if (newGameBtn) {
-      newGameBtn.addEventListener("click", () => this.showNewGameMessage());
-    }
+    // Back button
+    document.getElementById("backToMainBtn").onclick = () => {
+      this.screens.loadGame.classList.add("hidden");
+      this.screens.mainMenu.classList.remove("hidden");
+    };
 
-    if (exitBtn) {
-      exitBtn.addEventListener("click", () => this.showExitMessage());
-    }
+    // Save slot
+    document.getElementById("saveSlot1").onclick = () => {
+      this.showAvatarLoading();
+    };
 
-    // Event listeners para la pantalla de carga de partida
-    const backToMainBtn = document.getElementById("backToMainBtn");
-    const saveSlot1 = document.getElementById("saveSlot1");
+    // New Game button
+    document.getElementById("newGameBtn").onclick = () => {
+      alert("New Game feature coming soon! 🎮");
+    };
 
-    if (backToMainBtn) {
-      backToMainBtn.addEventListener("click", () => this.showMainMenu());
-    }
-
-    if (saveSlot1) {
-      saveSlot1.addEventListener("click", () => this.loadGame());
-    }
+    // Exit button
+    document.getElementById("exitBtn").onclick = () => {
+      alert("Thanks for playing Pixel Journey! 🎮");
+    };
   }
 
-  // Mostrar pantalla de carga de partida
-  showLoadGameScreen() {
-    this.hideAllScreens();
-    this.screens.loadGame.classList.remove("hidden");
-    this.currentScreen = "loadGame";
-
-    // Asegurar que la aplicación principal esté oculta
-    document.body.classList.add("navigation-active");
-  }
-
-  // Mostrar menú principal
-  showMainMenu() {
-    this.hideAllScreens();
-    this.screens.mainMenu.classList.remove("hidden");
-    this.screens.mainMenu.classList.add("fade-in");
-    this.currentScreen = "mainMenu";
-
-    // Asegurar que la aplicación principal esté oculta
-    document.body.classList.add("navigation-active");
-
-    // Remover la clase fade-in después de la animación
-    setTimeout(() => {
-      this.screens.mainMenu.classList.remove("fade-in");
-    }, 2000);
-  }
-
-  // Cargar partida y mostrar aplicación principal
-  loadGame() {
-    // Mostrar animación de carga antes de cargar la app
-    this.showLoadingAnimation();
-
-    // Después de la animación, ocultar navegación y mostrar app
-    setTimeout(() => {
-      this.hideNavigation();
-      document.body.classList.remove("navigation-active");
-      this.currentScreen = "app";
-    }, 2000); // Duración de la animación
-  }
-
-  // Mostrar animación de carga
-  showLoadingAnimation() {
+  showAvatarLoading() {
     // Crear pantalla de carga temporal
-    const loadingOverlay = document.createElement("div");
-    loadingOverlay.className = "navigation-overlay";
-    loadingOverlay.innerHTML = `
+    const loadingDiv = document.createElement("div");
+    loadingDiv.className = "navigation-overlay";
+    loadingDiv.innerHTML = `
       <h1 class="app-loading-title">Loading Adventure...</h1>
       <p class="app-loading-subtitle">Preparing your memories...</p>
-      
       <div class="avatar-spinner">
         <div class="avatar-item">✈️</div>
         <div class="avatar-item">🏔️</div>
@@ -102,74 +67,21 @@ export class NavigationManager {
       </div>
     `;
 
-    document.body.appendChild(loadingOverlay);
+    document.body.appendChild(loadingDiv);
 
-    // Remover después de la animación
+    // Después de 2 segundos, mostrar app principal
     setTimeout(() => {
-      if (loadingOverlay.parentNode) {
-        loadingOverlay.parentNode.removeChild(loadingOverlay);
-      }
+      document.body.removeChild(loadingDiv);
+      this.screens.mainMenu.classList.add("hidden");
+      this.screens.loadGame.classList.add("hidden");
+      document.body.classList.remove("navigation-active");
     }, 2000);
   }
 
-  // Ocultar navegación
-  hideNavigation() {
-    Object.values(this.screens).forEach((screen) => {
-      if (screen && screen.classList.contains("navigation-overlay")) {
-        screen.classList.add("hidden");
-      }
-    });
-  }
-
-  // Mostrar navegación
-  showNavigation() {
-    Object.values(this.screens).forEach((screen) => {
-      if (screen && screen.classList.contains("navigation-overlay")) {
-        screen.classList.remove("hidden");
-      }
-    });
-  }
-
-  // Ocultar todas las pantallas
-  hideAllScreens() {
-    Object.values(this.screens).forEach((screen) => {
-      if (screen) {
-        screen.classList.add("hidden");
-      }
-    });
-  }
-
-  // Mostrar mensaje para opciones no disponibles
-  showNewGameMessage() {
-    alert(
-      "New Game feature coming soon! 🎮\n\nFor now, you can start your adventure by loading the existing save."
-    );
-  }
-
-  showExitMessage() {
-    alert(
-      "Thanks for playing Pixel Journey! 🎮\n\nYour memories are safe and will be here when you return."
-    );
-  }
-
-  // Transición desde la pantalla de carga al menú principal
+  // Transición desde loading inicial al menú principal
   transitionFromLoading() {
-    this.hideAllScreens();
+    this.screens.loading.classList.add("hidden");
     this.screens.mainMenu.classList.remove("hidden");
-    this.screens.mainMenu.classList.add("fade-in");
-    this.currentScreen = "mainMenu";
-
-    // Asegurar que la aplicación principal esté oculta
-    document.body.classList.add("navigation-active");
-
-    // Remover la clase fade-in después de la animación
-    setTimeout(() => {
-      this.screens.mainMenu.classList.remove("fade-in");
-    }, 2000);
-  }
-
-  // Obtener pantalla actual
-  getCurrentScreen() {
-    return this.currentScreen;
+    // NO fade-in animation to avoid the bug
   }
 }
