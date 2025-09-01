@@ -11,6 +11,7 @@ import { initUI } from "./ui.js";
 import { initClouds, bindScrollParallax } from "./clouds.js";
 import { recomputeTileSize, tileSize, updateCloudsConfig } from "./config.js";
 import { setGridW } from "./state.js";
+import { LoadingScreen, simulateLoadingProcess } from "./loading-screen.js";
 
 function fitBoardDimensions() {
   // 1) Escala del tile según viewport
@@ -51,32 +52,58 @@ async function initMemorySystem() {
 }
 
 window.addEventListener("DOMContentLoaded", async () => {
-  fitBoardDimensions();
+  // Inicializar pantalla de carga
+  const loadingScreen = new LoadingScreen();
 
-  const { canvas } = initCanvas();
-  await Promise.all([loadSprites(), loadTileset()]);
-  ensureCapacity();
-  drawMap();
+  try {
+    // Iniciar proceso de carga simulado
+    const loadingPromise = simulateLoadingProcess(loadingScreen);
 
-  // El sistema de memories se inicializa automáticamente en ui.js
-  await initMemorySystem();
-
-  // Inicializar UI (que ahora usará el sistema de memories)
-  initUI();
-
-  // Las nubes se inicializan condicionalmente (desactivadas en móviles para mejor rendimiento)
-  initClouds(canvas);
-  bindScrollParallax();
-  startIdleLoop();
-
-  window.addEventListener("resize", () => {
+    // Inicializar aplicación en paralelo
     fitBoardDimensions();
+    const { canvas } = initCanvas();
+
+    loadingScreen.updateProgress("Loading sprites and tiles...");
+    await Promise.all([loadSprites(), loadTileset()]);
+
+    loadingScreen.updateProgress("Preparing canvas...");
     ensureCapacity();
     drawMap();
-    // Actualizar configuración de nubes dinámicamente
-    updateCloudsConfig();
-  });
 
-  // Asegura que al cargar no "desaparezca" la casa por scroll previo
-  window.scrollTo({ top: 0, behavior: "instant" });
+    loadingScreen.updateProgress("Initializing memory system...");
+    // El sistema de memories se inicializa automáticamente en ui.js
+    await initMemorySystem();
+
+    loadingScreen.updateProgress("Setting up interface...");
+    // Inicializar UI (que ahora usará el sistema de memories)
+    initUI();
+
+    loadingScreen.updateProgress("Finalizing...");
+    // Las nubes se inicializan condicionalmente (desactivadas en móviles para mejor rendimiento)
+    initClouds(canvas);
+    bindScrollParallax();
+    startIdleLoop();
+
+    // Esperar a que termine el proceso de carga simulado
+    await loadingPromise;
+
+    // Ocultar pantalla de carga
+    loadingScreen.hide();
+
+    window.addEventListener("resize", () => {
+      fitBoardDimensions();
+      ensureCapacity();
+      drawMap();
+      // Actualizar configuración de nubes dinámicamente
+      updateCloudsConfig();
+    });
+
+    // Asegura que al cargar no "desaparezca" la casa por scroll previo
+    window.scrollTo({ top: 0, behavior: "instant" });
+  } catch (error) {
+    console.error("Error during app initialization:", error);
+    loadingScreen.updateProgress("Error loading application");
+    // Ocultar pantalla de carga incluso si hay error
+    setTimeout(() => loadingScreen.hide(), 2000);
+  }
 });
