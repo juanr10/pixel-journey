@@ -462,6 +462,18 @@ export function initUI() {
             const uploadedImages = [];
             for (const image of newImages) {
               try {
+                // Verificar si ya existe una imagen con el mismo contenido en el memory
+                const isDuplicateInMemory = memory.images?.some(
+                  (existingImg) => existingImg.contentHash === image.contentHash
+                );
+
+                if (isDuplicateInMemory) {
+                  console.log(
+                    `Imagen duplicada detectada, omitiendo: ${image.filename}`
+                  );
+                  continue;
+                }
+
                 const imageData = await memorySystem.uploadImage(
                   image.file,
                   memory.id
@@ -632,6 +644,7 @@ export function initUI() {
 
             if (isAddModal && !addImageSelector) {
               addImageSelector = new ImageSelector(imageContainer, {
+                uniqueId: "add-modal-image-selector", // ID único para el modal de añadir
                 maxFiles: 5,
                 showPreview: true,
                 onImageSelect: (imageData) => {
@@ -666,9 +679,15 @@ export function initUI() {
                 },
               });
             } else if (isEditModal && !editImageSelector) {
+              // Obtener las imágenes existentes del memory actual
+              const currentMemory = memories[currentIdx];
+              const existingImages = currentMemory?.images || [];
+
               editImageSelector = new ImageSelector(imageContainer, {
+                uniqueId: `edit-modal-image-selector-${currentIdx}`, // ID único para cada memory
                 maxFiles: 5,
                 showPreview: true,
+                existingImages: existingImages, // Pasar imágenes existentes del memory
                 onImageSelect: (imageData) => {
                   console.log(
                     "Imagen seleccionada en modal de editar:",

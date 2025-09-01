@@ -8,8 +8,9 @@ const imageSelectorInstances = new Map();
 
 export class ImageSelector {
   constructor(container, options = {}) {
-    // Singleton pattern por contenedor
-    const containerId = container.id || container.className || "default";
+    // Singleton pattern por contenedor - usar ID único si se proporciona
+    const containerId =
+      options.uniqueId || container.id || container.className || "default";
     if (imageSelectorInstances.has(containerId)) {
       console.log("ImageSelector ya existe para este contenedor:", containerId);
       return imageSelectorInstances.get(containerId);
@@ -25,6 +26,7 @@ export class ImageSelector {
       onImageSelect: () => {},
       onImageRemove: () => {},
       onError: () => {},
+      existingImages: [], // Imágenes existentes del memory
       ...options,
     };
 
@@ -50,6 +52,15 @@ export class ImageSelector {
       this.createHTML();
       this.bindEvents();
       this.addStyles();
+
+      // Cargar imágenes existentes si las hay
+      if (
+        this.options.existingImages &&
+        this.options.existingImages.length > 0
+      ) {
+        await this.loadExistingImages();
+      }
+
       this.isInitialized = true;
       console.log("ImageSelector initialized successfully");
     } catch (error) {
@@ -435,29 +446,7 @@ export class ImageSelector {
         font-size: 9px;
       }
       
-      .image-preview.existing {
-        border: 2px solid #28a745;
-        box-shadow: 0 4px 15px rgba(40,167,69,0.2), 0 1px 3px rgba(40,167,69,0.1);
-      }
-      
-      .image-preview.existing::before {
-        content: '✓';
-        position: absolute;
-        top: 4px;
-        right: 4px;
-        background: #28a745;
-        color: white;
-        border-radius: 50%;
-        width: 18px;
-        height: 18px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 10px;
-        font-weight: bold;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-        z-index: 10;
-      }
+
       
       .image-selector-error {
         color: #dc3545;
@@ -468,6 +457,13 @@ export class ImageSelector {
         background: #f8d7da;
         border: 1px solid #f5c6cb;
         border-radius: 4px;
+        animation: shake 0.5s ease-in-out;
+      }
+      
+      @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-5px); }
+        75% { transform: translateX(5px); }
       }
       
       .image-selector-loading {
@@ -702,6 +698,18 @@ export class ImageSelector {
       // Comprimir imagen
       const compressedFile = await this.compressImage(file);
 
+      // Generar hash del contenido para detectar duplicados
+      const contentHash = await this.generateFileHash(compressedFile);
+
+      // Verificar si ya existe una imagen con el mismo contenido
+      const isDuplicate = this.images.some(
+        (img) => img.contentHash === contentHash
+      );
+      if (isDuplicate) {
+        this.showError(`⚠️ This image has already been added: ${file.name}`);
+        return;
+      }
+
       // Crear objeto de imagen
       const imageData = {
         id: `img_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -711,6 +719,7 @@ export class ImageSelector {
         compressedSize: compressedFile.size,
         type: compressedFile.type,
         preview: await this.createPreview(compressedFile),
+        contentHash: contentHash, // Hash del contenido para detectar duplicados
       };
 
       // Añadir a la lista
@@ -784,6 +793,55 @@ export class ImageSelector {
     });
   }
 
+  // Generar hash del contenido del archivo para detectar duplicados
+  async generateFileHash(file) {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const arrayBuffer = e.target.result;
+        const hashBuffer = await crypto.subtle.digest("SHA-256", arrayBuffer);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const hashHex = hashArray
+          .map((b) => b.toString(16).padStart(2, "0"))
+          .join("");
+        resolve(hashHex);
+      };
+      reader.readAsArrayBuffer(file);
+    });
+  }
+
+  // Cargar imágenes existentes del memory
+  async loadExistingImages() {
+    try {
+      console.log("Cargando imágenes existentes:", this.options.existingImages);
+
+      for (const existingImage of this.options.existingImages) {
+        // Crear objeto de imagen existente
+        const imageData = {
+          id: existingImage.id,
+          filename: existingImage.filename,
+          size: existingImage.size,
+          type: existingImage.type,
+          url: existingImage.url,
+          preview: existingImage.url, // Usar la URL como preview
+          isExisting: true, // Marcar como imagen existente
+          contentHash: existingImage.contentHash, // Hash para detección de duplicados
+        };
+
+        // Añadir a la lista
+        this.images.push(imageData);
+      }
+
+      // Actualizar vista
+      this.updateView();
+
+      console.log(`Cargadas ${this.images.length} imágenes existentes`);
+    } catch (error) {
+      console.error("Error cargando imágenes existentes:", error);
+      this.options.onError(error);
+    }
+  }
+
   // Actualizar vista
   updateView() {
     // Actualizar contador
@@ -819,7 +877,7 @@ export class ImageSelector {
   // Crear elemento de preview
   createPreviewItem(imageData, index) {
     const item = document.createElement("div");
-    item.className = `image-preview ${imageData.isExisting ? "existing" : ""}`;
+    item.className = "image-preview";
     item.dataset.imageId = imageData.id;
 
     // Contenedor interno para la imagen (estilo Polaroid)
