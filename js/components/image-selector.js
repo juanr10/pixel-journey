@@ -842,6 +842,35 @@ export class ImageSelector {
     }
   }
 
+  // Recargar imágenes existentes (para cuando se cambia de memory)
+  async reloadExistingImages(newExistingImages) {
+    try {
+      console.log("Recargando imágenes existentes:", newExistingImages);
+
+      // Limpiar imágenes actuales
+      this.images = [];
+
+      // Actualizar las opciones con las nuevas imágenes
+      this.options.existingImages = newExistingImages || [];
+
+      // Cargar las nuevas imágenes si las hay
+      if (
+        this.options.existingImages &&
+        this.options.existingImages.length > 0
+      ) {
+        await this.loadExistingImages();
+      } else {
+        // Si no hay imágenes, actualizar la vista vacía
+        this.updateView();
+      }
+
+      console.log(`Recargadas ${this.images.length} imágenes existentes`);
+    } catch (error) {
+      console.error("Error recargando imágenes existentes:", error);
+      this.options.onError(error);
+    }
+  }
+
   // Actualizar vista
   updateView() {
     // Actualizar contador

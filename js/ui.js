@@ -678,13 +678,14 @@ export function initUI() {
                   }
                 },
               });
-            } else if (isEditModal && !editImageSelector) {
+            } else if (isEditModal) {
               // Obtener las imágenes existentes del memory actual
               const currentMemory = memories[currentIdx];
               const existingImages = currentMemory?.images || [];
 
+              // Siempre crear un nuevo ImageSelector para asegurar que tenga las imágenes correctas
               editImageSelector = new ImageSelector(imageContainer, {
-                uniqueId: `edit-modal-image-selector-${currentIdx}`, // ID único para cada memory
+                uniqueId: `edit-modal-image-selector-${currentIdx}-${Date.now()}`, // ID único con timestamp
                 maxFiles: 5,
                 showPreview: true,
                 existingImages: existingImages, // Pasar imágenes existentes del memory
