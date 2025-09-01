@@ -266,17 +266,39 @@ export function initUI() {
     }
 
     try {
+      // Calcular posición para el nuevo memory basándose en waypoints existentes
+      const { computeWaypointsAndPolyline } = await import("./path.js");
+      const { seed, gridW } = await import("./state.js");
+
+      // Obtener memories existentes para calcular la siguiente posición
+      const memorySystem = getMemorySystem();
+      const existingMemories = memorySystem
+        ? await memorySystem.getMemories()
+        : memories;
+
+      // Calcular waypoints incluyendo el nuevo memory
+      const { waypoints } = computeWaypointsAndPolyline(
+        [...existingMemories, { type, title, text }], // Memory temporal para el cálculo
+        seed,
+        gridW
+      );
+
+      // La última posición será para el nuevo memory
+      const lastWaypoint = waypoints[waypoints.length - 1];
+      const position = { x: lastWaypoint.x, y: lastWaypoint.y };
+
+      console.log("🔍 DEBUG - Posición calculada para nuevo memory:", position);
+
       // Crear datos del memory
       const memoryData = {
         title,
         text,
         type,
         createdAt: new Date().toISOString(),
-        position: { x: 0, y: 0 }, // Por defecto, se puede mejorar después
+        position, // Usar la posición calculada
       };
 
       // Si tenemos el sistema de memories integrado, usarlo
-      const memorySystem = getMemorySystem();
       if (memorySystem) {
         console.log(
           "🔍 DEBUG - Creando memory con adaptador:",
@@ -284,6 +306,7 @@ export function initUI() {
         );
         const memoryId = await memorySystem.createMemory(memoryData);
         console.log("Memory creado con sistema integrado:", memoryId);
+        console.log("🔍 DEBUG - Memory data guardado:", memoryData);
 
         // Subir imágenes si las hay
         if (addImageSelector && addImageSelector.hasImages()) {

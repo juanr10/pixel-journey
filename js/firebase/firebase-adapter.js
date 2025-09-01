@@ -130,7 +130,7 @@ export class FirebaseAdapter {
 
       const q = query(
         collection(this.db, "memories"),
-        orderBy("createdAt", "desc")
+        orderBy("createdAt", "asc") // Cambiar a "asc" para orden cronológico
       );
       const querySnapshot = await getDocs(q);
 
