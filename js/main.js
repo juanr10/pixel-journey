@@ -53,39 +53,28 @@ async function initMemorySystem() {
 }
 
 window.addEventListener("DOMContentLoaded", async () => {
-  // Inicializar pantalla de carga
-  const loadingScreen = new LoadingScreen();
-
   // Inicializar navegación
   const navigation = new NavigationManager();
 
-  // Ocultar la aplicación principal inicialmente
-  document.body.classList.add("navigation-active");
-
   try {
-    // Iniciar proceso de carga simulado
-    const loadingPromise = simulateLoadingProcess(loadingScreen);
+    // Iniciar proceso de carga simulado (sin pantalla de carga)
+    const loadingPromise = simulateLoadingProcess();
 
     // Inicializar aplicación en paralelo
     fitBoardDimensions();
     const { canvas } = initCanvas();
 
-    loadingScreen.updateProgress("Loading sprites and tiles...");
     await Promise.all([loadSprites(), loadTileset()]);
 
-    loadingScreen.updateProgress("Preparing canvas...");
     ensureCapacity();
     drawMap();
 
-    loadingScreen.updateProgress("Initializing memory system...");
     // El sistema de memories se inicializa automáticamente en ui.js
     await initMemorySystem();
 
-    loadingScreen.updateProgress("Setting up interface...");
     // Inicializar UI (que ahora usará el sistema de memories)
     initUI();
 
-    loadingScreen.updateProgress("Finalizing...");
     // Las nubes se inicializan condicionalmente (desactivadas en móviles para mejor rendimiento)
     initClouds(canvas);
     bindScrollParallax();
@@ -94,8 +83,7 @@ window.addEventListener("DOMContentLoaded", async () => {
     // Esperar a que termine el proceso de carga simulado
     await loadingPromise;
 
-    // Ocultar pantalla de carga y mostrar menú principal
-    loadingScreen.hide();
+    // Ir directo al menú principal (sin pantalla de carga)
     navigation.transitionFromLoading();
 
     window.addEventListener("resize", () => {

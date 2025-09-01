@@ -3,29 +3,22 @@
 
 export class NavigationManager {
   constructor() {
-    console.log("NavigationManager constructor called");
     this.screens = {
       loading: document.getElementById("appLoadingScreen"),
       mainMenu: document.getElementById("mainMenuScreen"),
       loadGame: document.getElementById("loadGameScreen"),
     };
-    console.log("Screens found:", this.screens);
     this.init();
   }
 
   init() {
-    console.log("NavigationManager init() called");
     // Load Game button
     const loadGameBtn = document.getElementById("loadGameBtn");
-    console.log("loadGameBtn element:", loadGameBtn);
     if (loadGameBtn) {
       loadGameBtn.onclick = () => {
-        console.log("Load Game button clicked!");
         this.screens.mainMenu.classList.add("hidden");
         this.screens.loadGame.classList.remove("hidden");
       };
-    } else {
-      console.error("loadGameBtn element not found!");
     }
 
     // Back button
@@ -80,8 +73,7 @@ export class NavigationManager {
 
   // Transición desde loading inicial al menú principal
   transitionFromLoading() {
-    this.screens.loading.classList.add("hidden");
+    // Mostrar menú principal directamente
     this.screens.mainMenu.classList.remove("hidden");
-    // NO fade-in animation to avoid the bug
   }
 }
