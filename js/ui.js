@@ -313,12 +313,29 @@ export function initUI() {
           const selectedImages = addImageSelector.getSelectedImages();
           console.log(`Subiendo ${selectedImages.length} imágenes...`);
 
+          const uploadedImages = [];
           for (const image of selectedImages) {
             try {
-              await memorySystem.uploadImage(image.file, memoryId);
+              const imageData = await memorySystem.uploadImage(
+                image.file,
+                memoryId
+              );
+              uploadedImages.push(imageData);
               console.log(`Imagen subida: ${image.filename}`);
             } catch (error) {
               console.error(`Error subiendo imagen ${image.filename}:`, error);
+            }
+          }
+
+          // Actualizar el memory con la información de las imágenes
+          if (uploadedImages.length > 0) {
+            try {
+              await memorySystem.updateMemory(memoryId, {
+                images: uploadedImages,
+              });
+              console.log("Memory actualizado con imágenes:", uploadedImages);
+            } catch (error) {
+              console.error("Error actualizando memory con imágenes:", error);
             }
           }
         }
@@ -437,13 +454,19 @@ export function initUI() {
         if (editImageSelector && editImageSelector.hasImages()) {
           const selectedImages = editImageSelector.getSelectedImages();
           const newImages = selectedImages.filter((img) => !img.isExisting);
+          const existingImages = selectedImages.filter((img) => img.isExisting);
 
           if (newImages.length > 0) {
             console.log(`Subiendo ${newImages.length} nuevas imágenes...`);
 
+            const uploadedImages = [];
             for (const image of newImages) {
               try {
-                await memorySystem.uploadImage(image.file, memory.id);
+                const imageData = await memorySystem.uploadImage(
+                  image.file,
+                  memory.id
+                );
+                uploadedImages.push(imageData);
                 console.log(`Imagen subida: ${image.filename}`);
               } catch (error) {
                 console.error(
@@ -451,6 +474,36 @@ export function initUI() {
                   error
                 );
               }
+            }
+
+            // Combinar imágenes existentes con las nuevas
+            const allImages = [...existingImages, ...uploadedImages];
+
+            // Actualizar el memory con todas las imágenes
+            try {
+              await memorySystem.updateMemory(memory.id, { images: allImages });
+              console.log(
+                "Memory actualizado con todas las imágenes:",
+                allImages
+              );
+            } catch (error) {
+              console.error("Error actualizando memory con imágenes:", error);
+            }
+          } else if (existingImages.length > 0) {
+            // Solo actualizar si hay cambios en las imágenes existentes
+            try {
+              await memorySystem.updateMemory(memory.id, {
+                images: existingImages,
+              });
+              console.log(
+                "Memory actualizado con imágenes existentes:",
+                existingImages
+              );
+            } catch (error) {
+              console.error(
+                "Error actualizando memory con imágenes existentes:",
+                error
+              );
             }
           }
         }
@@ -587,11 +640,29 @@ export function initUI() {
                     imageData
                   );
                 },
-                onImageRemove: (imageData) => {
+                onImageRemove: async (imageData) => {
                   console.log(
                     "Imagen eliminada en modal de añadir:",
                     imageData
                   );
+                  // Si es una imagen existente, eliminarla del storage
+                  if (imageData.isExisting && imageData.id) {
+                    try {
+                      const memorySystem = getMemorySystem();
+                      if (memorySystem) {
+                        await memorySystem.deleteImage(imageData.id);
+                        console.log(
+                          "Imagen eliminada del storage:",
+                          imageData.id
+                        );
+                      }
+                    } catch (error) {
+                      console.error(
+                        "Error eliminando imagen del storage:",
+                        error
+                      );
+                    }
+                  }
                 },
               });
             } else if (isEditModal && !editImageSelector) {
@@ -604,11 +675,29 @@ export function initUI() {
                     imageData
                   );
                 },
-                onImageRemove: (imageData) => {
+                onImageRemove: async (imageData) => {
                   console.log(
                     "Imagen eliminada en modal de editar:",
                     imageData
                   );
+                  // Si es una imagen existente, eliminarla del storage
+                  if (imageData.isExisting && imageData.id) {
+                    try {
+                      const memorySystem = getMemorySystem();
+                      if (memorySystem) {
+                        await memorySystem.deleteImage(imageData.id);
+                        console.log(
+                          "Imagen eliminada del storage:",
+                          imageData.id
+                        );
+                      }
+                    } catch (error) {
+                      console.error(
+                        "Error eliminando imagen del storage:",
+                        error
+                      );
+                    }
+                  }
                 },
               });
             }

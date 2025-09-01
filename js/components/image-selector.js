@@ -315,21 +315,62 @@ export class ImageSelector {
       
       .image-preview-overlay {
         position: absolute;
-        top: 8px;
-        left: 8px;
-        right: 8px;
-        bottom: 25px;
-        background: rgba(0,0,0,0.7);
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.3);
         display: flex;
         align-items: center;
         justify-content: center;
         opacity: 0;
         transition: opacity 0.2s ease;
-        border-radius: 2px;
+        border-radius: 3px;
+        cursor: pointer;
+        z-index: 10;
       }
       
       .image-preview:hover .image-preview-overlay {
         opacity: 1;
+      }
+      
+      .image-preview-icon {
+        font-size: 16px;
+        color: white;
+        text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+        transition: transform 0.2s ease;
+      }
+      
+      .image-preview:hover .image-preview-icon {
+        transform: scale(1.1);
+      }
+      
+      /* Botón flotante de eliminar */
+      .image-remove-btn {
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        background: rgba(220, 53, 69, 0.9);
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        font-size: 14px;
+        font-weight: bold;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+        z-index: 30;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      }
+      
+      .image-remove-btn:hover {
+        background: #dc3545;
+        transform: scale(1.1);
+        box-shadow: 0 3px 8px rgba(0,0,0,0.4);
       }
       
       .image-preview-actions {
@@ -382,6 +423,11 @@ export class ImageSelector {
         word-break: break-word;
         line-height: 1.2;
         font-size: 10px;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        display: block;
       }
       
       .image-preview-info .size {
@@ -456,6 +502,91 @@ export class ImageSelector {
         box-shadow: 0 1px 3px rgba(0,0,0,0.2);
       }
       
+      /* Modal de vista previa */
+      .image-preview-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.9);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+      }
+      
+      .image-preview-modal.show {
+        opacity: 1;
+        visibility: visible;
+      }
+      
+      .image-preview-modal-content {
+        position: relative;
+        max-width: 90vw;
+        max-height: 90vh;
+        background: white;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      }
+      
+      .image-preview-modal img {
+        width: 100%;
+        height: auto;
+        max-height: 90vh;
+        object-fit: contain;
+        display: block;
+      }
+      
+      .image-preview-modal-close {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: rgba(0,0,0,0.7);
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        font-size: 20px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+      }
+      
+      .image-preview-modal-close:hover {
+        background: rgba(0,0,0,0.9);
+        transform: scale(1.1);
+      }
+      
+      .image-preview-modal-info {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: rgba(0,0,0,0.8);
+        color: white;
+        padding: 15px;
+        font-size: 14px;
+      }
+      
+      .image-preview-modal-info .filename {
+        font-weight: 600;
+        margin-bottom: 5px;
+        word-break: break-word;
+      }
+      
+      .image-preview-modal-info .size {
+        font-size: 12px;
+        opacity: 0.8;
+      }
+
       @media (max-width: 768px) {
         .image-selector {
           padding: 15px;
@@ -481,6 +612,17 @@ export class ImageSelector {
         
         .drop-zone-content {
           padding: 0 10px;
+        }
+        
+        .image-preview-modal-content {
+          max-width: 95vw;
+          max-height: 95vh;
+        }
+        
+        .image-remove-btn {
+          width: 20px;
+          height: 20px;
+          font-size: 12px;
         }
       }
     `;
@@ -688,14 +830,9 @@ export class ImageSelector {
     img.src = imageData.preview || imageData.url;
     img.alt = imageData.filename;
 
-    const overlay = document.createElement("div");
-    overlay.className = "image-preview-overlay";
-
-    const actions = document.createElement("div");
-    actions.className = "image-preview-actions";
-
+    // Botón flotante de eliminar
     const removeBtn = document.createElement("button");
-    removeBtn.className = "image-action-btn";
+    removeBtn.className = "image-remove-btn";
     removeBtn.innerHTML = "×";
     removeBtn.title = "Remove image";
     removeBtn.addEventListener("click", (e) => {
@@ -703,8 +840,19 @@ export class ImageSelector {
       this.removeImage(index);
     });
 
-    actions.appendChild(removeBtn);
-    overlay.appendChild(actions);
+    // Overlay para vista previa
+    const overlay = document.createElement("div");
+    overlay.className = "image-preview-overlay";
+    overlay.addEventListener("click", (e) => {
+      e.stopPropagation();
+      this.showImagePreview(imageData);
+    });
+
+    // Ícono de vista previa
+    const previewIcon = document.createElement("div");
+    previewIcon.className = "image-preview-icon";
+    previewIcon.innerHTML = "🔍"; // Ícono de lupa para indicar vista previa
+    overlay.appendChild(previewIcon);
 
     const info = document.createElement("div");
     info.className = "image-preview-info";
@@ -716,25 +864,99 @@ export class ImageSelector {
     `;
 
     innerContainer.appendChild(img);
-    innerContainer.appendChild(overlay);
     item.appendChild(innerContainer);
+    item.appendChild(overlay);
+    item.appendChild(removeBtn);
     item.appendChild(info);
 
     return item;
   }
 
+  // Mostrar vista previa de imagen
+  showImagePreview(imageData) {
+    // Crear modal si no existe
+    let modal = document.getElementById("image-preview-modal");
+    if (!modal) {
+      modal = document.createElement("div");
+      modal.id = "image-preview-modal";
+      modal.className = "image-preview-modal";
+      document.body.appendChild(modal);
+    }
+
+    modal.innerHTML = `
+      <div class="image-preview-modal-content">
+        <button class="image-preview-modal-close">×</button>
+        <img src="${imageData.preview || imageData.url}" alt="${
+      imageData.filename
+    }">
+        <div class="image-preview-modal-info">
+          <div class="filename">${imageData.filename}</div>
+          <div class="size">${this.formatFileSize(
+            imageData.compressedSize || imageData.size
+          )}</div>
+        </div>
+      </div>
+    `;
+
+    // Mostrar modal
+    modal.classList.add("show");
+
+    // Event listeners para cerrar
+    const closeBtn = modal.querySelector(".image-preview-modal-close");
+    closeBtn.addEventListener("click", () => this.hideImagePreview());
+
+    modal.addEventListener("click", (e) => {
+      if (e.target === modal) {
+        this.hideImagePreview();
+      }
+    });
+
+    // Cerrar con Escape
+    const handleEscape = (e) => {
+      if (e.key === "Escape") {
+        this.hideImagePreview();
+        document.removeEventListener("keydown", handleEscape);
+      }
+    };
+    document.addEventListener("keydown", handleEscape);
+  }
+
+  // Ocultar vista previa
+  hideImagePreview() {
+    const modal = document.getElementById("image-preview-modal");
+    if (modal) {
+      modal.classList.remove("show");
+      setTimeout(() => {
+        if (modal.parentNode) {
+          modal.parentNode.removeChild(modal);
+        }
+      }, 300);
+    }
+  }
+
   // Eliminar imagen
-  removeImage(index) {
+  async removeImage(index) {
     const imageData = this.images[index];
+
+    // Si la imagen ya está en el storage (es una imagen existente), eliminarla
+    if (imageData.isExisting && imageData.id) {
+      try {
+        // Notificar al callback para que elimine del storage
+        if (this.options.onImageRemove) {
+          await this.options.onImageRemove(imageData);
+        }
+      } catch (error) {
+        console.error("Error removing image from storage:", error);
+        this.showError(`Error removing image: ${error.message}`);
+        return;
+      }
+    }
 
     // Eliminar de la lista
     this.images.splice(index, 1);
 
     // Actualizar vista
     this.updateView();
-
-    // Notificar callback
-    this.options.onImageRemove(imageData);
 
     console.log("Image removed:", imageData.filename);
   }
