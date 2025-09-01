@@ -450,12 +450,36 @@ export function initUI() {
 
         await memorySystem.updateMemory(memory.id, updateData);
 
-        // Subir nuevas imágenes si las hay
-        if (editImageSelector && editImageSelector.hasImages()) {
+        // Procesar imágenes: subir nuevas, mantener existentes, eliminar del cloud las marcadas
+        if (editImageSelector) {
           const selectedImages = editImageSelector.getSelectedImages();
           const newImages = selectedImages.filter((img) => !img.isExisting);
           const existingImages = selectedImages.filter((img) => img.isExisting);
+          const deletedImages = editImageSelector.getAndClearDeletedImages(); // Obtener y limpiar imágenes eliminadas
 
+          // Eliminar imágenes del cloud que fueron marcadas para eliminación
+          if (deletedImages.length > 0) {
+            console.log(
+              `Eliminando ${deletedImages.length} imágenes del cloud...`
+            );
+            for (const deletedImage of deletedImages) {
+              try {
+                await memorySystem.deleteImage(deletedImage.id);
+                console.log(
+                  `Imagen eliminada del cloud: ${deletedImage.filename}`
+                );
+              } catch (error) {
+                // Si la imagen ya no está en el cloud, solo reportar en log
+                console.warn(
+                  `Imagen no encontrada en el cloud (ya eliminada): ${deletedImage.filename}`,
+                  error.message
+                );
+                // No lanzar error, continuar con el proceso
+              }
+            }
+          }
+
+          // Subir nuevas imágenes si las hay
           if (newImages.length > 0) {
             console.log(`Subiendo ${newImages.length} nuevas imágenes...`);
 
@@ -516,6 +540,14 @@ export function initUI() {
                 "Error actualizando memory con imágenes existentes:",
                 error
               );
+            }
+          } else if (deletedImages.length > 0) {
+            // Si solo se eliminaron imágenes, actualizar el memory con array vacío
+            try {
+              await memorySystem.updateMemory(memory.id, { images: [] });
+              console.log("Memory actualizado: todas las imágenes eliminadas");
+            } catch (error) {
+              console.error("Error actualizando memory sin imágenes:", error);
             }
           }
         }
@@ -695,29 +727,12 @@ export function initUI() {
                     imageData
                   );
                 },
-                onImageRemove: async (imageData) => {
+                onImageRemove: (imageData) => {
                   console.log(
-                    "Imagen eliminada en modal de editar:",
-                    imageData
+                    "Imagen marcada para eliminación diferida:",
+                    imageData.filename
                   );
-                  // Si es una imagen existente, eliminarla del storage
-                  if (imageData.isExisting && imageData.id) {
-                    try {
-                      const memorySystem = getMemorySystem();
-                      if (memorySystem) {
-                        await memorySystem.deleteImage(imageData.id);
-                        console.log(
-                          "Imagen eliminada del storage:",
-                          imageData.id
-                        );
-                      }
-                    } catch (error) {
-                      console.error(
-                        "Error eliminando imagen del storage:",
-                        error
-                      );
-                    }
-                  }
+                  // La eliminación real del cloud se hace al guardar
                 },
               });
             }

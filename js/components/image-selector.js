@@ -31,6 +31,7 @@ export class ImageSelector {
     };
 
     this.images = [];
+    this.deletedImages = []; // Rastrear imágenes eliminadas para borrarlas del cloud al guardar
     // Corregir la referencia: IMAGE → IMAGES
     this.imageConfig = PERSISTENCE_CONFIG.IMAGES;
     this.isInitialized = false;
@@ -95,6 +96,13 @@ export class ImageSelector {
 
         <div class="image-preview-container" id="image-preview-container"></div>
 
+        <div class="image-pending-changes" id="image-pending-changes" style="display: none;">
+          <div class="pending-changes-content">
+            <span class="pending-changes-icon">⚠️</span>
+            <span class="pending-changes-text">Images marked for deletion. Save changes to confirm.</span>
+          </div>
+        </div>
+
         <input type="file" id="image-file-input" multiple accept="image/*" style="display: none;">
       </div>
     `;
@@ -107,6 +115,9 @@ export class ImageSelector {
       "#image-preview-container"
     );
     this.imageCount = this.container.querySelector(".image-count");
+    this.pendingChangesEl = this.container.querySelector(
+      "#image-pending-changes"
+    );
   }
 
   bindEvents() {
@@ -444,6 +455,64 @@ export class ImageSelector {
       .image-preview-info .size {
         color: #999;
         font-size: 9px;
+      }
+      
+      /* Estilo para imágenes pendientes de eliminación */
+      .image-preview.pending-deletion {
+        opacity: 0.5;
+        filter: grayscale(100%);
+        border: 2px dashed #dc3545;
+        background: #f8f9fa;
+      }
+      
+      .image-preview.pending-deletion .image-preview-inner {
+        opacity: 0.6;
+      }
+      
+      .image-preview.pending-deletion .image-remove-btn {
+        background: #dc3545;
+        color: white;
+        font-weight: bold;
+      }
+      
+      .image-preview.pending-deletion .image-preview-overlay {
+        background: rgba(220, 53, 69, 0.3);
+      }
+      
+      .image-preview.pending-deletion .image-preview-icon {
+        color: #dc3545;
+        font-size: 18px;
+      }
+      
+      /* Aviso de cambios pendientes */
+      .image-pending-changes {
+        margin-top: 15px;
+        padding: 12px;
+        background: #fff3cd;
+        border: 1px solid #ffeaa7;
+        border-radius: 6px;
+        animation: fadeIn 0.3s ease-in-out;
+      }
+      
+      .pending-changes-content {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        color: #856404;
+      }
+      
+      .pending-changes-icon {
+        font-size: 16px;
+      }
+      
+      .pending-changes-text {
+        font-weight: 500;
+      }
+      
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
       }
       
 
@@ -847,8 +916,9 @@ export class ImageSelector {
     try {
       console.log("Recargando imágenes existentes:", newExistingImages);
 
-      // Limpiar imágenes actuales
+      // Limpiar imágenes actuales y eliminadas
       this.images = [];
+      this.deletedImages = [];
 
       // Actualizar las opciones con las nuevas imágenes
       this.options.existingImages = newExistingImages || [];
@@ -873,11 +943,12 @@ export class ImageSelector {
 
   // Actualizar vista
   updateView() {
-    // Actualizar contador
-    this.imageCount.textContent = `${this.images.length}/${this.options.maxFiles}`;
+    // Actualizar contador (solo imágenes no pendientes de eliminación)
+    const activeImages = this.images.filter((img) => !img.pendingDeletion);
+    this.imageCount.textContent = `${activeImages.length}/${this.options.maxFiles}`;
 
     // Actualizar zona de drop
-    if (this.images.length >= this.options.maxFiles) {
+    if (activeImages.length >= this.options.maxFiles) {
       this.dropZone.classList.add("max-files-reached");
       this.dropZone.querySelector(".drop-message").textContent =
         "Image limit reached";
@@ -885,6 +956,13 @@ export class ImageSelector {
       this.dropZone.classList.remove("max-files-reached");
       this.dropZone.querySelector(".drop-message").textContent =
         "Drag photos here or click to select";
+    }
+
+    // Mostrar/ocultar aviso de cambios pendientes
+    if (this.hasPendingChanges()) {
+      this.pendingChangesEl.style.display = "block";
+    } else {
+      this.pendingChangesEl.style.display = "none";
     }
 
     // Actualizar previews
@@ -906,7 +984,9 @@ export class ImageSelector {
   // Crear elemento de preview
   createPreviewItem(imageData, index) {
     const item = document.createElement("div");
-    item.className = "image-preview";
+    item.className = `image-preview ${
+      imageData.pendingDeletion ? "pending-deletion" : ""
+    }`;
     item.dataset.imageId = imageData.id;
 
     // Contenedor interno para la imagen (estilo Polaroid)
@@ -1021,31 +1101,33 @@ export class ImageSelector {
     }
   }
 
-  // Eliminar imagen
+  // Eliminar imagen (directa o marcada según el contexto)
   async removeImage(index) {
     const imageData = this.images[index];
 
-    // Si la imagen ya está en el storage (es una imagen existente), eliminarla
-    if (imageData.isExisting && imageData.id) {
-      try {
-        // Notificar al callback para que elimine del storage
-        if (this.options.onImageRemove) {
-          await this.options.onImageRemove(imageData);
-        }
-      } catch (error) {
-        console.error("Error removing image from storage:", error);
-        this.showError(`Error removing image: ${error.message}`);
-        return;
-      }
+    // Si la imagen es nueva (no está en el cloud), eliminar directamente
+    if (!imageData.isExisting) {
+      // Eliminar directamente de la lista
+      this.images.splice(index, 1);
+      this.updateView();
+      console.log("Image removed directly (new image):", imageData.filename);
+      return;
     }
 
-    // Eliminar de la lista
-    this.images.splice(index, 1);
+    // Si la imagen ya está en el storage, marcar como pendiente de eliminación
+    imageData.pendingDeletion = true;
 
-    // Actualizar vista
+    // Añadir a la lista de imágenes eliminadas para borrarlas del cloud al guardar
+    this.deletedImages.push(imageData);
+    console.log(
+      "Imagen marcada para eliminación del cloud:",
+      imageData.filename
+    );
+
+    // Actualizar vista para mostrar el estado de eliminación pendiente
     this.updateView();
 
-    console.log("Image removed:", imageData.filename);
+    console.log("Image marked for deletion:", imageData.filename);
   }
 
   // Formatear tamaño de archivo
@@ -1057,8 +1139,13 @@ export class ImageSelector {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   }
 
-  // Obtener imágenes seleccionadas
+  // Obtener imágenes seleccionadas (excluyendo las pendientes de eliminación)
   getSelectedImages() {
+    return this.images.filter((img) => !img.pendingDeletion);
+  }
+
+  // Obtener todas las imágenes (incluyendo las pendientes de eliminación)
+  getAllImages() {
     return [...this.images];
   }
 
@@ -1103,6 +1190,23 @@ export class ImageSelector {
   // Obtener número de imágenes
   getImageCount() {
     return this.images.length;
+  }
+
+  // Obtener imágenes eliminadas y limpiar la lista
+  getAndClearDeletedImages() {
+    const deleted = [...this.deletedImages];
+    this.deletedImages = [];
+    return deleted;
+  }
+
+  // Obtener imágenes eliminadas sin limpiar
+  getDeletedImages() {
+    return [...this.deletedImages];
+  }
+
+  // Verificar si hay cambios pendientes (imágenes marcadas para eliminación)
+  hasPendingChanges() {
+    return this.deletedImages.length > 0;
   }
 
   // Mostrar error
