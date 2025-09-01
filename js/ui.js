@@ -43,7 +43,11 @@ export function initUI() {
       try {
         persistenceAdapter = new PersistenceAdapter();
         await persistenceAdapter.init();
+
+        // Log de debug para verificar qué adaptador está activo
+        const adapterInfo = persistenceAdapter.getActiveAdapterInfo();
         console.log("Sistema de memories inicializado en UI");
+        console.log("🔍 DEBUG - Adaptador activo:", adapterInfo);
       } catch (error) {
         console.error("Error inicializando sistema de memories:", error);
       }
@@ -273,10 +277,12 @@ export function initUI() {
 
       // Si tenemos el sistema de memories integrado, usarlo
       const memorySystem = getMemorySystem();
-      if (memorySystem && memorySystem.persistenceAdapter) {
-        const memoryId = await memorySystem.persistenceAdapter.createMemory(
-          memoryData
+      if (memorySystem) {
+        console.log(
+          "🔍 DEBUG - Creando memory con adaptador:",
+          memorySystem.getActiveAdapterInfo()?.name
         );
+        const memoryId = await memorySystem.createMemory(memoryData);
         console.log("Memory creado con sistema integrado:", memoryId);
 
         // Subir imágenes si las hay
@@ -286,10 +292,7 @@ export function initUI() {
 
           for (const image of selectedImages) {
             try {
-              await memorySystem.persistenceAdapter.uploadImage(
-                image.file,
-                memoryId
-              );
+              await memorySystem.uploadImage(image.file, memoryId);
               console.log(`Imagen subida: ${image.filename}`);
             } catch (error) {
               console.error(`Error subiendo imagen ${image.filename}:`, error);
@@ -298,7 +301,7 @@ export function initUI() {
         }
 
         // Recargar memories desde el sistema integrado
-        const allMemories = await memorySystem.persistenceAdapter.getMemories();
+        const allMemories = await memorySystem.getMemories();
         setMemories(allMemories);
       } else {
         // Fallback al sistema original
@@ -401,14 +404,11 @@ export function initUI() {
 
       // Si tenemos el sistema de memories integrado, usarlo
       const memorySystem = getMemorySystem();
-      if (memorySystem && memorySystem.persistenceAdapter) {
+      if (memorySystem) {
         const memory = memories[currentIdx];
         const updateData = { title, text, type };
 
-        await memorySystem.persistenceAdapter.updateMemory(
-          memory.id,
-          updateData
-        );
+        await memorySystem.updateMemory(memory.id, updateData);
 
         // Subir nuevas imágenes si las hay
         if (editImageSelector && editImageSelector.hasImages()) {
@@ -420,10 +420,7 @@ export function initUI() {
 
             for (const image of newImages) {
               try {
-                await memorySystem.persistenceAdapter.uploadImage(
-                  image.file,
-                  memory.id
-                );
+                await memorySystem.uploadImage(image.file, memory.id);
                 console.log(`Imagen subida: ${image.filename}`);
               } catch (error) {
                 console.error(
@@ -436,7 +433,7 @@ export function initUI() {
         }
 
         // Recargar memories desde el sistema integrado
-        const allMemories = await memorySystem.persistenceAdapter.getMemories();
+        const allMemories = await memorySystem.getMemories();
         setMemories(allMemories);
       } else {
         // Fallback al sistema original
@@ -459,14 +456,14 @@ export function initUI() {
     if (!confirm("Are you sure you want to delete this memory?")) return;
 
     try {
-      // Si tenemos el sistema de memories integrado, usarlo
+      // Si tenemos el sistema integrado, usarlo
       const memorySystem = getMemorySystem();
-      if (memorySystem && memorySystem.persistenceAdapter) {
+      if (memorySystem) {
         const memory = memories[currentIdx];
-        await memorySystem.persistenceAdapter.deleteMemory(memory.id);
+        await memorySystem.deleteMemory(memory.id);
 
         // Recargar memories desde el sistema integrado
-        const allMemories = await memorySystem.persistenceAdapter.getMemories();
+        const allMemories = await memorySystem.getMemories();
         setMemories(allMemories);
       } else {
         // Fallback al sistema original
