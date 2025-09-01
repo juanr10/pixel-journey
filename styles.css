@@ -173,6 +173,58 @@ body.no-scroll { overflow:hidden; }
 .modalActions { display:flex; justify-content:space-between; gap:8px; margin-top:16px; }
 .muted { opacity:.8; font-size:1rem; color:#666; margin-bottom:14px; }
 
+/* ====== Spinner de carga ====== */
+.modal-loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  border-radius: 12px;
+}
+
+.modal-loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #444;
+  border-top: 3px solid #ffcc00;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 12px;
+}
+
+.modal-loading-text {
+  font-family: 'VT323', monospace;
+  font-size: 16px;
+  color: #fff;
+  text-align: center;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* ====== Formulario deshabilitado ====== */
+.modal.disabled .modalInner {
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.modal.disabled input,
+.modal.disabled textarea,
+.modal.disabled select,
+.modal.disabled button {
+  pointer-events: none;
+  opacity: 0.6;
+}
+
 /* ====== Botones Retro 8-bit ====== */
 .btn-8bit {
   position:relative;

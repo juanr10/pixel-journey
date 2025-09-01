@@ -265,6 +265,9 @@ export function initUI() {
       return;
     }
 
+    // Mostrar spinner de carga
+    showModalLoading(addModal, "Creating memory...");
+
     try {
       // Calcular posición para el nuevo memory basándose en waypoints existentes
       const { computeWaypointsAndPolyline } = await import("./path.js");
@@ -357,6 +360,9 @@ export function initUI() {
     } catch (error) {
       console.error("Error creando memory:", error);
       alert("Error al crear memory: " + error.message);
+    } finally {
+      // Ocultar spinner de carga
+      hideModalLoading(addModal);
     }
   });
 
@@ -436,6 +442,9 @@ export function initUI() {
   // ======= Save edits =======
   saveBtn.addEventListener("click", async () => {
     if (currentIdx == null) return;
+
+    // Mostrar spinner de carga
+    showModalLoading(modal, "Saving changes...");
 
     try {
       const title = editTitle.value.trim() || "Memory";
@@ -567,6 +576,9 @@ export function initUI() {
     } catch (error) {
       console.error("Error actualizando memory:", error);
       alert("Error al actualizar memory: " + error.message);
+    } finally {
+      // Ocultar spinner de carga
+      hideModalLoading(modal);
     }
   });
 
@@ -574,6 +586,9 @@ export function initUI() {
   deleteBtn.addEventListener("click", async () => {
     if (currentIdx == null) return;
     if (!confirm("Are you sure you want to delete this memory?")) return;
+
+    // Mostrar spinner de carga
+    showModalLoading(modal, "Deleting memory...");
 
     try {
       // Si tenemos el sistema integrado, usarlo
@@ -600,8 +615,42 @@ export function initUI() {
     } catch (error) {
       console.error("Error eliminando memory:", error);
       alert("Error al eliminar memory: " + error.message);
+    } finally {
+      // Ocultar spinner de carga
+      hideModalLoading(modal);
     }
   });
+
+  // ======= Funciones de spinner de carga =======
+  function showModalLoading(modal, message = "Saving...") {
+    // Crear overlay de carga si no existe
+    let loadingOverlay = modal.querySelector(".modal-loading-overlay");
+    if (!loadingOverlay) {
+      loadingOverlay = document.createElement("div");
+      loadingOverlay.className = "modal-loading-overlay";
+      loadingOverlay.innerHTML = `
+        <div class="modal-loading-spinner"></div>
+        <div class="modal-loading-text">${message}</div>
+      `;
+      modal.appendChild(loadingOverlay);
+    } else {
+      // Actualizar mensaje si ya existe
+      const textEl = loadingOverlay.querySelector(".modal-loading-text");
+      if (textEl) textEl.textContent = message;
+    }
+
+    // Mostrar overlay y deshabilitar modal
+    loadingOverlay.style.display = "flex";
+    modal.classList.add("disabled");
+  }
+
+  function hideModalLoading(modal) {
+    const loadingOverlay = modal.querySelector(".modal-loading-overlay");
+    if (loadingOverlay) {
+      loadingOverlay.style.display = "none";
+    }
+    modal.classList.remove("disabled");
+  }
 
   // ======= Close on backdrop / Esc =======
   [addModal, modal].forEach((m) =>
