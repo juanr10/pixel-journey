@@ -43,7 +43,7 @@ export class LoadingScreen {
 export async function simulateLoadingProcess(loadingScreen) {
   const steps = [
     { message: "Initializing...", delay: 500 },
-    { message: "Connecting to Firebase...", delay: 800 },
+    { message: "Connecting to database...", delay: 800 },
     { message: "Loading memories...", delay: 1000 },
     { message: "Preparing canvas...", delay: 600 },
     { message: "Almost ready...", delay: 400 },
