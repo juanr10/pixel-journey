@@ -68,21 +68,21 @@
         </div>
       </div>
       
-      <button class="back-button" id="backToMainBtn">Back to Main Menu</button>
+      <button class="btn-8bit secondary back-button" id="backToMainBtn">Back</button>
     </div>
   </div>
+
+  <!-- Switch de día/noche en esquina derecha superior -->
+  <label class="nightSwitch" id="nightSwitchLabel" aria-label="Toggle night mode">
+    <input type="checkbox" id="toggleNight" aria-label="Night mode">
+    <span class="icon sun" aria-hidden="true">☀️</span>
+    <span class="track" aria-hidden="true"></span>
+    <span class="icon moon" aria-hidden="true">🌙</span>
+  </label>
 
   <header>
     <h1>Pixel Journey</h1>
     <p class="subtitle">Write your memories, forge your path.</p>
-
-    <!-- Switch de día/noche en esquina derecha superior -->
-    <label class="nightSwitch" id="nightSwitchLabel" aria-label="Toggle night mode">
-      <input type="checkbox" id="toggleNight" aria-label="Night mode">
-      <span class="icon sun" aria-hidden="true">☀️</span>
-      <span class="track" aria-hidden="true"></span>
-      <span class="icon moon" aria-hidden="true">🌙</span>
-    </label>
 
     <div class="controlBar">
       <button id="openAddModal" class="btn-8bit primary">+ Add memory</button>
@@ -168,6 +168,11 @@
       </div>
     </div>
   </div>
+
+  <!-- Botón Back en esquina izquierda superior -->
+  <button id="backToMenuBtn" class="backSwitch" aria-label="Back to main menu">
+    Back
+  </button>
 
   <script type="module" src="./js/main.js"></script>
 </body>

@@ -18,14 +18,24 @@ export class NavigationManager {
       loadGameBtn.onclick = () => {
         this.screens.mainMenu.classList.add("hidden");
         this.screens.loadGame.classList.remove("hidden");
+        document.body.classList.add("load-game-active");
       };
     }
 
-    // Back button
+    // Back button (from load game screen to main menu)
     document.getElementById("backToMainBtn").onclick = () => {
       this.screens.loadGame.classList.add("hidden");
       this.screens.mainMenu.classList.remove("hidden");
+      document.body.classList.remove("load-game-active");
     };
+
+    // Back button (from game screen to main menu)
+    const backToMenuBtn = document.getElementById("backToMenuBtn");
+    if (backToMenuBtn) {
+      backToMenuBtn.onclick = () => {
+        this.goToMainMenu();
+      };
+    }
 
     // Save slot
     document.getElementById("saveSlot1").onclick = () => {
@@ -75,5 +85,13 @@ export class NavigationManager {
   transitionFromLoading() {
     // Mostrar menú principal directamente
     this.screens.mainMenu.classList.remove("hidden");
+  }
+
+  // Volver al menú principal desde la pantalla del juego
+  goToMainMenu() {
+    // Ocultar la aplicación principal y mostrar el menú
+    document.body.classList.add("navigation-active");
+    this.screens.mainMenu.classList.remove("hidden");
+    this.screens.loadGame.classList.add("hidden");
   }
 }
