@@ -26,6 +26,49 @@
     <div class="loading-progress" id="loadingProgress">Initializing...</div>
   </div>
 
+  <!-- Menú Principal -->
+  <div id="mainMenuScreen" class="navigation-overlay">
+    <div class="main-menu">
+      <h1 class="main-menu-title">Pixel Journey</h1>
+      <p class="main-menu-subtitle">Write your memories, forge your path.</p>
+      
+      <div class="menu-options">
+        <button class="menu-option disabled" id="newGameBtn">New Game</button>
+        <button class="menu-option available" id="loadGameBtn">Load Game</button>
+        <button class="menu-option disabled" id="exitBtn">Exit</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pantalla de Carga de Partida -->
+  <div id="loadGameScreen" class="navigation-overlay hidden">
+    <div class="load-game-screen">
+      <h1 class="load-game-title">Load Game</h1>
+      
+      <div class="save-slots">
+        <div class="save-slot occupied" id="saveSlot1">
+          <div class="save-slot-title">Juan & Paula's Adventure</div>
+          <div class="save-slot-subtitle">Last saved: Today</div>
+          <div class="save-slot-status">Ready to play</div>
+        </div>
+        
+        <div class="save-slot empty">
+          <div class="save-slot-title">Empty Slot</div>
+          <div class="save-slot-subtitle">No save data</div>
+          <div class="save-slot-status">Not available</div>
+        </div>
+        
+        <div class="save-slot empty">
+          <div class="save-slot-title">Empty Slot</div>
+          <div class="save-slot-subtitle">No save data</div>
+          <div class="save-slot-status">Not available</div>
+        </div>
+      </div>
+      
+      <button class="back-button" id="backToMainBtn">Back to Main Menu</button>
+    </div>
+  </div>
+
   <header>
     <h1>Pixel Journey</h1>
     <p class="subtitle">Write your memories, forge your path.</p>

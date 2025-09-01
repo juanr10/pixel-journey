@@ -12,6 +12,7 @@ import { initClouds, bindScrollParallax } from "./clouds.js";
 import { recomputeTileSize, tileSize, updateCloudsConfig } from "./config.js";
 import { setGridW } from "./state.js";
 import { LoadingScreen, simulateLoadingProcess } from "./loading-screen.js";
+import { NavigationManager } from "./navigation.js";
 
 function fitBoardDimensions() {
   // 1) Escala del tile según viewport
@@ -55,6 +56,12 @@ window.addEventListener("DOMContentLoaded", async () => {
   // Inicializar pantalla de carga
   const loadingScreen = new LoadingScreen();
 
+  // Inicializar navegación
+  const navigation = new NavigationManager();
+
+  // Ocultar la aplicación principal inicialmente
+  document.body.classList.add("navigation-active");
+
   try {
     // Iniciar proceso de carga simulado
     const loadingPromise = simulateLoadingProcess(loadingScreen);
@@ -87,8 +94,9 @@ window.addEventListener("DOMContentLoaded", async () => {
     // Esperar a que termine el proceso de carga simulado
     await loadingPromise;
 
-    // Ocultar pantalla de carga
+    // Ocultar pantalla de carga y mostrar menú principal
     loadingScreen.hide();
+    navigation.transitionFromLoading();
 
     window.addEventListener("resize", () => {
       fitBoardDimensions();
@@ -104,6 +112,9 @@ window.addEventListener("DOMContentLoaded", async () => {
     console.error("Error during app initialization:", error);
     loadingScreen.updateProgress("Error loading application");
     // Ocultar pantalla de carga incluso si hay error
-    setTimeout(() => loadingScreen.hide(), 2000);
+    setTimeout(() => {
+      loadingScreen.hide();
+      navigation.transitionFromLoading();
+    }, 2000);
   }
 });
