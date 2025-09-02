@@ -209,7 +209,7 @@ export function initUI() {
   function openAddModal() {
     addTitle.value = "";
     addText.value = "";
-    addType.value = "camera";
+    addType.value = "travel";
     addMeta.textContent = `Index: ${
       memories.length
     } · Date: ${new Date().toLocaleString()}`;
