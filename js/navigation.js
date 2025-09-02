@@ -30,7 +30,7 @@ export class NavigationManager {
 
     // Save slot
     document.getElementById("saveSlot1").onclick = () => {
-      this.showAvatarLoading();
+      this.checkPasswordAndLoad();
     };
 
     // New Game button
@@ -42,6 +42,34 @@ export class NavigationManager {
     document.getElementById("exitBtn").onclick = () => {
       alert("Thanks for playing Pixel Journey! 🎮");
     };
+  }
+
+  checkPasswordAndLoad() {
+    // Obtener la contraseña desde las variables de entorno
+    const correctPassword = import.meta.env.VITE_ACCESS_PASSWORD_APP;
+
+    // Si no hay contraseña configurada, denegar acceso
+    if (!correctPassword) {
+      alert(
+        "❌ Access password not configured. Please set VITE_ACCESS_PASSWORD_APP in your .env file."
+      );
+      return;
+    }
+
+    // Solicitar contraseña al usuario
+    const userPassword = prompt("🔐 Enter access password:");
+
+    // Verificar contraseña
+    if (userPassword === correctPassword) {
+      // Contraseña correcta, continuar con la carga
+      this.showAvatarLoading();
+    } else if (userPassword === null) {
+      // Usuario canceló, no hacer nada
+      return;
+    } else {
+      // Contraseña incorrecta
+      alert("❌ Incorrect password. Access denied.");
+    }
   }
 
   showAvatarLoading() {
