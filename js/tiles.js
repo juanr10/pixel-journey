@@ -1,8 +1,9 @@
 // js/tiles.js
 import { TILE_SRC_PX, tileSize, CONFIG } from "./config.js";
 import { seeded, mulberry32 } from "./utils.js";
+// Importar el tileset para que Vite lo incluya en el build
+import tilesetUrl from "../assets/tiles/tileset_pixel_life.png";
 
-const tilesetUrl = "./assets/tiles/tileset_pixel_life.png";
 let tilesetImg = new Image();
 let tilesetLoaded = false;
 

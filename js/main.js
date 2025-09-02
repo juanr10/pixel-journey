@@ -13,6 +13,7 @@ import { recomputeTileSize, tileSize, updateCloudsConfig } from "./config.js";
 import { setGridW } from "./state.js";
 import { LoadingScreen, simulateLoadingProcess } from "./loading-screen.js";
 import { NavigationManager } from "./navigation.js";
+import { updateHtmlImageReferences } from "./html-assets.js";
 
 function fitBoardDimensions() {
   // 1) Escala del tile según viewport
@@ -74,6 +75,9 @@ window.addEventListener("DOMContentLoaded", async () => {
 
     // Inicializar UI (que ahora usará el sistema de memories)
     initUI();
+
+    // Actualizar referencias de imágenes en el HTML
+    updateHtmlImageReferences();
 
     // Las nubes se inicializan condicionalmente (desactivadas en móviles para mejor rendimiento)
     initClouds(canvas);
