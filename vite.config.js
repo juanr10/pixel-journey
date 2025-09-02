@@ -13,8 +13,16 @@ export default defineConfig({
     outDir: "dist",
     assetsDir: "assets",
     sourcemap: true,
+    rollupOptions: {
+      input: {
+        main: "./index.html",
+      },
+    },
   },
 
   // Configuración de variables de entorno
   envPrefix: "VITE_",
+
+  // Configuración de assets públicos
+  publicDir: "public",
 });
