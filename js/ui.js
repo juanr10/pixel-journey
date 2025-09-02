@@ -129,10 +129,10 @@ export function initUI() {
       // Crear HTML de pestañas
       const tabsHTML = `
         <div class="modal-tabs">
-          <button type="button" class="tab-button active" data-tab="basic">
+          <button type="button" class="tab-button active" data-tab="basic" data-icon="📝">
             📝 Basic Info
           </button>
-          <button type="button" class="tab-button" data-tab="images">
+          <button type="button" class="tab-button" data-tab="images" data-icon="📷">
             📷 Photos
           </button>
         </div>
@@ -178,10 +178,10 @@ export function initUI() {
       // Crear HTML de pestañas
       const tabsHTML = `
         <div class="modal-tabs">
-          <button type="button" class="tab-button active" data-tab="basic">
+          <button type="button" class="tab-button active" data-tab="basic" data-icon="📝">
             📝 Basic Info
           </button>
-          <button type="button" class="tab-button" data-tab="images">
+          <button type="button" class="tab-button" data-tab="images" data-icon="📷">
             📷 Photos
           </button>
         </div>

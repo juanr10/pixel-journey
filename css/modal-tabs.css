@@ -107,16 +107,36 @@
 /* Responsive */
 @media (max-width: 768px) {
   .modal-tabs {
-    flex-direction: column;
+    flex-direction: row;
+    justify-content: center;
+    gap: 10px;
   }
   
   .tab-button {
-    border-bottom: 1px solid #e0e0e0;
+    border-bottom: 3px solid transparent;
     border-right: none;
+    padding: 8px 12px;
+    font-size: 0;
+    min-width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+  }
+  
+  .tab-button::before {
+    content: attr(data-icon);
+    font-size: 20px;
   }
   
   .tab-button.active {
     border-bottom-color: #007bff;
     border-right: none;
+    background-color: #f0f8ff;
+  }
+  
+  .tab-button:hover {
+    background-color: #f8f9fa;
   }
 }
