@@ -199,6 +199,12 @@ body:not(.navigation-active):not(.load-game-active) #map {
     padding: 15px !important;
     margin: 0 10px !important;
   }
+  
+  /* Canvas más pequeño para móvil */
+  .boardWrap canvas {
+    max-width: 90% !important;
+    height: auto !important;
+  }
 }
 
 @keyframes avatarPulse {
