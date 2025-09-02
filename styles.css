@@ -146,6 +146,30 @@ body:not(.navigation-active):not(.load-game-active) #map {
 .avatar-item:nth-child(5) { animation-delay: 1.2s; }
 .avatar-item:nth-child(6) { animation-delay: 1.5s; }
 
+/* Estilos específicos para móvil - animación más pequeña */
+@media (max-width: 768px) {
+  .app-loading-title {
+    font-size: 14px !important;
+    margin-bottom: 15px !important;
+  }
+  
+  .app-loading-subtitle {
+    font-size: 14px !important;
+    margin-bottom: 20px !important;
+  }
+  
+  .avatar-spinner {
+    gap: 8px !important;
+    margin-bottom: 15px !important;
+  }
+  
+  .avatar-item {
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 14px !important;
+  }
+}
+
 @keyframes avatarPulse {
   0%, 100% { 
     transform: scale(1);
