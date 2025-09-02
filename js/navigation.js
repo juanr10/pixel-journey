@@ -22,20 +22,11 @@ export class NavigationManager {
       };
     }
 
-    // Back button (from load game screen to main menu)
-    document.getElementById("backToMainBtn").onclick = () => {
-      this.screens.loadGame.classList.add("hidden");
-      this.screens.mainMenu.classList.remove("hidden");
-      document.body.classList.remove("load-game-active");
-    };
+    // Back button (from load game screen to main menu) - REMOVED
+    // No back button needed in load game screen
 
-    // Back button (from game screen to main menu)
-    const backToMenuBtn = document.getElementById("backToMenuBtn");
-    if (backToMenuBtn) {
-      backToMenuBtn.onclick = () => {
-        this.goToMainMenu();
-      };
-    }
+    // Back button (from game screen to main menu) - REMOVED
+    // No back button needed globally
 
     // Save slot
     document.getElementById("saveSlot1").onclick = () => {
@@ -77,6 +68,7 @@ export class NavigationManager {
       document.body.removeChild(loadingDiv);
       this.screens.mainMenu.classList.add("hidden");
       this.screens.loadGame.classList.add("hidden");
+      document.body.classList.remove("load-game-active");
       document.body.classList.remove("navigation-active");
     }, 2000);
   }
