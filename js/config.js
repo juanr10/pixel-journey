@@ -16,22 +16,19 @@ export let houseSize = TILE_SRC_PX * HOUSE_SCALE;
 
 function computeScale() {
   const w = window.innerWidth;
-  // Más contenido pero controlado: 48px (móvil), 64px (tablet/desktop)
-  if (w <= 768) return 3; // 16*3 = 48
+  // Usar 64px en todos los dispositivos para detección consistente
   return 4; // 16*4 = 64
 }
 
 function computeSpriteScale() {
   const w = window.innerWidth;
-  // Avatares: del mismo tamaño que tiles (3x móvil, 4x desktop)
-  if (w <= 768) return 3; // 16*3 = 48
+  // Avatares: del mismo tamaño que tiles (4x en todos los dispositivos)
   return 4; // 16*4 = 64
 }
 
 function computeHouseScale() {
   const w = window.innerWidth;
-  // Casa: un poco más pequeña (4.5x móvil, 5.5x desktop)
-  if (w <= 768) return 4.5; // 16*4.5 = 72
+  // Casa: un poco más pequeña (5.5x en todos los dispositivos)
   return 5.5; // 16*5.5 = 88
 }
 

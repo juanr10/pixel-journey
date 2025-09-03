@@ -366,21 +366,67 @@ export function initUI() {
     }
   });
 
-  // ======= Click on canvas -> open Edit modal =======
+  // ======= Click/Touch on canvas -> open Edit modal =======
   let currentIdx = null;
   const canvas = document.getElementById("map");
+  let touchStartTime = 0;
+  let touchStartPos = null;
 
-  canvas.addEventListener("click", async (e) => {
+  // Función para manejar la detección de clicks/touches
+  async function handleCanvasInteraction(e, isTouch = false) {
+    // Prevenir eventos duplicados
+    if (isTouch && e.type === "touchend") {
+      const touchDuration = Date.now() - touchStartTime;
+      const touchDistance = touchStartPos
+        ? Math.sqrt(
+            Math.pow(e.changedTouches[0].clientX - touchStartPos.x, 2) +
+              Math.pow(e.changedTouches[0].clientY - touchStartPos.y, 2)
+          )
+        : 0;
+
+      // Solo procesar si fue un tap rápido y sin movimiento (no swipe)
+      if (touchDuration > 500 || touchDistance > 10) {
+        return;
+      }
+    }
+
     const rect = canvas.getBoundingClientRect();
-    const gx = Math.floor((e.clientX - rect.left) / tileSize);
-    const gy = Math.floor((e.clientY - rect.top) / tileSize);
+    let clientX, clientY;
+
+    if (isTouch && e.changedTouches) {
+      clientX = e.changedTouches[0].clientX;
+      clientY = e.changedTouches[0].clientY;
+    } else {
+      clientX = e.clientX;
+      clientY = e.clientY;
+    }
+
+    // Calcular coordenadas directas (como funcionaba en desktop)
+    const gx = Math.floor((clientX - rect.left) / tileSize);
+    const gy = Math.floor((clientY - rect.top) / tileSize);
 
     const { computeWaypointsAndPolyline } = await import("./path.js");
     const { seed, gridW } = await import("./state.js");
 
     const { waypoints } = computeWaypointsAndPolyline(memories, seed, gridW);
-    const hit = waypoints.find((w) => w.x === gx && w.y === gy);
-    if (!hit) return;
+
+    // Buscar hit exacto
+    let hit = waypoints.find((w) => w.x === gx && w.y === gy);
+
+    if (!hit) {
+      // Resetear variables de touch si no hay hit
+      if (isTouch) {
+        touchStartTime = 0;
+        touchStartPos = null;
+      }
+      return;
+    }
+
+    // Resetear variables de touch después de procesar exitosamente
+    if (isTouch) {
+      touchStartTime = 0;
+      touchStartPos = null;
+    }
 
     currentIdx = hit.idx;
     const m = memories[currentIdx];
@@ -437,7 +483,33 @@ export function initUI() {
     }
 
     showModal(modal);
-  });
+  }
+
+  // Event listeners para click y touch
+  canvas.addEventListener("click", (e) => handleCanvasInteraction(e, false));
+
+  // Event listeners para touch (más responsivo en mobile)
+  canvas.addEventListener(
+    "touchstart",
+    (e) => {
+      e.preventDefault(); // Prevenir scroll
+      touchStartTime = Date.now();
+      touchStartPos = {
+        x: e.touches[0].clientX,
+        y: e.touches[0].clientY,
+      };
+    },
+    { passive: false }
+  );
+
+  canvas.addEventListener(
+    "touchend",
+    (e) => {
+      e.preventDefault(); // Prevenir click duplicado
+      handleCanvasInteraction(e, true);
+    },
+    { passive: false }
+  );
 
   // ======= Save edits =======
   saveBtn.addEventListener("click", async () => {

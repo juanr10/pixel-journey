@@ -22,7 +22,7 @@ function fitBoardDimensions() {
   // 2) Ajuste de columnas para no desbordar ancho visible
   const sidePadding = 32; // coincide aprox con .boardWrap
   const maxColsByWidth = Math.max(
-    10,
+    6, // Permitir mínimo de 6 para mobile
     Math.floor((window.innerWidth - sidePadding * 2) / tileSize)
   );
 
@@ -30,8 +30,7 @@ function fitBoardDimensions() {
   let cols;
   if (window.innerWidth > 1400) cols = 18;
   else if (window.innerWidth > 1024) cols = 16;
-  else if (window.innerWidth > 600) cols = 12;
-  else cols = 10;
+  else cols = 6; // Reducir a 6 para mobile (muy estrecho)
 
   cols = Math.min(cols, maxColsByWidth);
   setGridW(cols);
