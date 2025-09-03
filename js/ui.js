@@ -48,6 +48,17 @@ export function initUI() {
         const adapterInfo = persistenceAdapter.getActiveAdapterInfo();
         console.log("Sistema de memories inicializado en UI");
         console.log("🔍 DEBUG - Adaptador activo:", adapterInfo);
+
+        // Cargar memories desde el adaptador activo
+        const { loadMemoriesFromAdapter } = await import("./state.js");
+        await loadMemoriesFromAdapter(persistenceAdapter);
+        console.log(
+          `✅ Cargados ${memories.length} memories desde ${adapterInfo.type}`
+        );
+
+        // Redibujar el mapa después de cargar los memories
+        const { drawMap } = await import("./render.js");
+        drawMap();
       } catch (error) {
         console.error("Error inicializando sistema de memories:", error);
       }
@@ -346,9 +357,13 @@ export function initUI() {
         // Recargar memories desde el sistema integrado
         const allMemories = await memorySystem.getMemories();
         setMemories(allMemories);
+
+        // Redibujar el mapa después de crear el memory
+        drawMap();
       } else {
         // Fallback al sistema original
         pushMemory(memoryData);
+        drawMap();
       }
 
       // Ensure canvas grows before animating/drawing
@@ -492,20 +507,33 @@ export function initUI() {
   canvas.addEventListener(
     "touchstart",
     (e) => {
-      e.preventDefault(); // Prevenir scroll
+      // Solo prevenir scroll si es un tap rápido, no un swipe
       touchStartTime = Date.now();
       touchStartPos = {
         x: e.touches[0].clientX,
         y: e.touches[0].clientY,
       };
     },
-    { passive: false }
+    { passive: true } // Permitir scroll natural
   );
 
   canvas.addEventListener(
     "touchend",
     (e) => {
-      e.preventDefault(); // Prevenir click duplicado
+      // Solo prevenir si fue un tap rápido
+      const touchDuration = Date.now() - touchStartTime;
+      const touchDistance = touchStartPos
+        ? Math.sqrt(
+            Math.pow(e.changedTouches[0].clientX - touchStartPos.x, 2) +
+              Math.pow(e.changedTouches[0].clientY - touchStartPos.y, 2)
+          )
+        : 0;
+
+      // Solo prevenir scroll si fue un tap rápido y sin movimiento
+      if (touchDuration < 300 && touchDistance < 10) {
+        e.preventDefault();
+      }
+
       handleCanvasInteraction(e, true);
     },
     { passive: false }

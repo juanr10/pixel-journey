@@ -14,28 +14,67 @@ if (!seed) {
   localStorage.setItem("pixelLifeSeed", String(seed));
 }
 
-export let memories = JSON.parse(localStorage.getItem("memories") || "[]");
+// Los memories se cargarán dinámicamente desde el adaptador activo
+export let memories = [];
 
-// Migration: Add createdAt field to existing memories if missing
-memories.forEach((memory, index) => {
-  if (!memory.createdAt) {
-    // For existing memories without date, use a default date (current time)
-    // This ensures all memories have a date tag
-    memory.createdAt = new Date().toISOString();
+// Función para cargar memories desde el adaptador activo
+export async function loadMemoriesFromAdapter(persistenceAdapter) {
+  if (!persistenceAdapter) {
+    // Fallback a localStorage si no hay adaptador
+    memories = JSON.parse(localStorage.getItem("memories") || "[]");
+  } else {
+    try {
+      memories = await persistenceAdapter.getMemories();
+    } catch (error) {
+      console.error("Error cargando memories desde adaptador:", error);
+      // Fallback a localStorage
+      memories = JSON.parse(localStorage.getItem("memories") || "[]");
+    }
   }
-});
+
+  // Migration: Add createdAt field to existing memories if missing
+  memories.forEach((memory, index) => {
+    if (!memory.createdAt) {
+      // For existing memories without date, use a default date (current time)
+      // This ensures all memories have a date tag
+      memory.createdAt = new Date().toISOString();
+    }
+  });
+
+  return memories;
+}
 
 export function setMemories(arr) {
   memories = arr;
   localStorage.setItem("memories", JSON.stringify(memories));
 }
+
 export function pushMemory(m) {
   memories.push(m);
   localStorage.setItem("memories", JSON.stringify(memories));
 }
+
 export function deleteMemoryAt(idx) {
   memories.splice(idx, 1);
   localStorage.setItem("memories", JSON.stringify(memories));
+}
+
+// Función para sincronizar memories con el adaptador activo
+export async function syncMemoriesWithAdapter(persistenceAdapter) {
+  if (!persistenceAdapter) return;
+
+  try {
+    // Obtener memories actuales del adaptador
+    const adapterMemories = await persistenceAdapter.getMemories();
+
+    // Actualizar la variable local si hay diferencias
+    if (adapterMemories.length !== memories.length) {
+      memories = adapterMemories;
+      console.log(`🔄 Sincronizados ${memories.length} memories con adaptador`);
+    }
+  } catch (error) {
+    console.error("Error sincronizando memories con adaptador:", error);
+  }
 }
 
 export function setGridH(newH) {

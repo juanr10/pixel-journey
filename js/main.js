@@ -67,13 +67,15 @@ window.addEventListener("DOMContentLoaded", async () => {
     await Promise.all([loadSprites(), loadTileset()]);
 
     ensureCapacity();
-    drawMap();
+
+    // Inicializar UI PRIMERO para que el sistema de memories esté listo
+    initUI();
 
     // El sistema de memories se inicializa automáticamente en ui.js
     await initMemorySystem();
 
-    // Inicializar UI (que ahora usará el sistema de memories)
-    initUI();
+    // Dibujar el mapa DESPUÉS de que todo esté inicializado
+    drawMap();
 
     // Actualizar referencias de imágenes en el HTML
     updateHtmlImageReferences();
